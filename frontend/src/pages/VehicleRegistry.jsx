@@ -44,29 +44,29 @@ const VehicleRegistry = () => {
         }
     };
 
-    useEffect(() => {
-        const fetchVehicles = async () => {
-            try {
-                const data = await vehicleApi.getAll();
-                const mapped = data.map(v => ({
-                    id: v.id,
-                    regNo: v.registrationNumber || 'N/A',
-                    makeModel: v.model || 'Unknown',
-                    type: v.type || 'Truck',
-                    capacity: `${v.maxLoadCapacity || 0} kg`,
-                    odometer: `${v.odometer || 0} km`,
-                    cost: `₹${v.acquisitionCost || 0}`,
-                    status: v.status === 'ON_TRIP' ? 'On Trip' : (v.status === 'IN_SHOP' ? 'In Shop' : (v.status === 'RETIRED' ? 'Retired' : 'Available')),
-                    badge: v.status === 'ON_TRIP' ? 'bg-primary' : (v.status === 'IN_SHOP' ? 'bg-warning text-dark' : (v.status === 'RETIRED' ? 'bg-danger' : 'bg-success'))
-                }));
-                setVehicles(mapped);
-            } catch (error) {
-                console.error("Failed to fetch vehicles:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const fetchVehicles = async () => {
+        try {
+            const data = await vehicleApi.getAll();
+            const mapped = data.map(v => ({
+                id: v.id,
+                regNo: v.registrationNumber || 'N/A',
+                makeModel: v.model || 'Unknown',
+                type: v.type || 'Truck',
+                capacity: `${v.maxLoadCapacity || 0} kg`,
+                odometer: `${v.odometer || 0} km`,
+                cost: `₹${v.acquisitionCost || 0}`,
+                status: v.status === 'ON_TRIP' ? 'On Trip' : (v.status === 'IN_SHOP' ? 'In Shop' : (v.status === 'RETIRED' ? 'Retired' : 'Available')),
+                badge: v.status === 'ON_TRIP' ? 'bg-primary' : (v.status === 'IN_SHOP' ? 'bg-warning text-dark' : (v.status === 'RETIRED' ? 'bg-danger' : 'bg-success'))
+            }));
+            setVehicles(mapped);
+        } catch (error) {
+            console.error("Failed to fetch vehicles:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchVehicles();
     }, []);
 
