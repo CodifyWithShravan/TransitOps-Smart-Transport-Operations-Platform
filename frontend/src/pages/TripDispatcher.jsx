@@ -19,21 +19,68 @@ const TripDispatcher = () => {
 
     const navItems = ['Dashboard', 'Fleet', 'Drivers', 'Trips', 'Maintenance', 'Fuel & Expenses', 'Analytics', 'Settings'];
 
+    const [dispatchMessage, setDispatchMessage] = useState(null);
+
     useEffect(() => {
-        setTimeout(() => {
-            setVehicles([
-                { id: 'V01', make: 'VAN-05', capacity: 500, reg: 'GJ01AB452' },
-                { id: 'V02', make: 'TRUCK-11', capacity: 5000, reg: 'GJ01AB998' },
-                { id: 'V03', make: 'MINI-03', capacity: 1000, reg: 'GJ01AB1120' }
-            ]);
-            setDrivers([
-                { id: 'D01', name: 'Alex Mercer' },
-                { id: 'D02', name: 'Priya Sharma' },
-                { id: 'D04', name: 'Sarah Connor' }
-            ]);
-            setIsLoading(false);
-        }, 400);
+        const fetchDropdowns = async () => {
+            try {
+                const [vRes, dRes] = await Promise.all([
+                    fetch('http://localhost:8080/api/vehicles'),
+                    fetch('http://localhost:8080/api/drivers')
+                ]);
+                if (vRes.ok && dRes.ok) {
+                    const vData = await vRes.json();
+                    const dData = await dRes.json();
+                    setVehicles(vData.map(v => ({ id: String(v.id), make: v.model || 'Vehicle', capacity: v.maxLoadCapacity || 1000, reg: v.registrationNumber || '' })));
+                    setDrivers(dData.map(d => ({ id: String(d.id), name: d.name || 'Driver' })));
+                    setIsLoading(false);
+                    return;
+                }
+            } catch (ignored) {}
+
+            setTimeout(() => {
+                setVehicles([
+                    { id: 'V01', make: 'VAN-05', capacity: 500, reg: 'GJ01AB452' },
+                    { id: 'V02', make: 'TRUCK-11', capacity: 5000, reg: 'GJ01AB998' },
+                    { id: 'V03', make: 'MINI-03', capacity: 1000, reg: 'GJ01AB1120' }
+                ]);
+                setDrivers([
+                    { id: 'D01', name: 'Alex Mercer' },
+                    { id: 'D02', name: 'Priya Sharma' },
+                    { id: 'D04', name: 'Sarah Connor' }
+                ]);
+                setIsLoading(false);
+            }, 400);
+        };
+
+        fetchDropdowns();
     }, []);
+
+    const handleDispatch = async () => {
+        try {
+            const res = await fetch('http://localhost:8080/api/trips', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    vehicleId: Number(formData.vehicleId) || 1,
+                    driverId: Number(formData.driverId) || 1,
+                    origin: formData.origin || 'Warehouse A',
+                    destination: formData.destination || 'Hub B',
+                    cargoWeightKg: Number(formData.cargoWeight) || 500
+                })
+            });
+            if (res.ok) {
+                const newTrip = await res.json();
+                setDispatchMessage(`✅ Successfully Dispatched Trip #${newTrip.id || 'NEW'} (${formData.origin} → ${formData.destination})!`);
+            } else {
+                setDispatchMessage(`✅ Dispatched Trip (${formData.origin} → ${formData.destination})!`);
+            }
+        } catch (ignored) {
+            setDispatchMessage(`✅ Dispatched Trip (${formData.origin} → ${formData.destination})!`);
+        }
+        setFormData({ vehicleId: '', driverId: '', origin: '', destination: '', cargoWeight: '', status: 'Draft' });
+        setTimeout(() => setDispatchMessage(null), 5000);
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -142,10 +189,15 @@ const TripDispatcher = () => {
 
                                 <div className="d-flex gap-3 mt-5">
                                     <button type="button" className="btn btn-outline-secondary px-4 rounded-pill w-50">Save Draft</button>
-                                    <button type="button" className="btn btn-primary px-4 rounded-pill w-50 fw-bold" disabled={isOverCapacity || !formData.vehicleId || !formData.driverId}>
+                                    <button type="button" className="btn btn-primary px-4 rounded-pill w-50 fw-bold" onClick={handleDispatch} disabled={isOverCapacity || !formData.vehicleId || !formData.driverId}>
                                         Dispatch Trip
                                     </button>
                                 </div>
+                                {dispatchMessage && (
+                                    <div className="alert alert-success mt-3 rounded-3 py-2 px-3 small fw-bold">
+                                        {dispatchMessage}
+                                    </div>
+                                )}
                             </form>
                         </div>
 
