@@ -58,6 +58,7 @@ const VehicleRegistry = () => {
                             let path = "/";
                             if (item === 'Fleet') path = "/fleet";
                             if (item === 'Drivers') path = "/drivers";
+                            if (item === 'Trips') path = "/trips";
                             const isActive = item === 'Fleet';
 
                             return (

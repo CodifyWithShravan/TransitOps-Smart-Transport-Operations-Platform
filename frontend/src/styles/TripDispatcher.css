@@ -1,0 +1,95 @@
+.dispatcher-bg {
+  background-color: #121212;
+}
+
+.sidebar-dark {
+  background-color: #1a1a1a;
+  min-height: 100vh;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #121212;
+}
+
+.active-nav-item {
+  border: 1px solid #f39c12;
+  border-radius: 6px;
+  color: #fff !important;
+  background-color: rgba(243, 156, 18, 0.1);
+}
+
+.hover-nav {
+  transition: all 0.2s ease-in-out;
+}
+
+.hover-nav:hover {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.rounded-avatar {
+  width: 40px;
+  height: 40px;
+  font-weight: 600;
+  border: 1px solid #0d6efd; 
+  color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.form-control:focus, .form-select:focus {
+  background-color: transparent;
+  color: #fff;
+  border-color: #0d6efd; 
+  box-shadow: none;
+}
+
+.form-select option {
+  background-color: #1a1a1a;
+  color: #fff;
+}
+
+.btn-primary {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0b5ed7;
+  border-color: #0a58ca;
+}
+
+.btn-primary:disabled {
+  background-color: #2c3e50;
+  border-color: #2c3e50;
+  color: #7f8c8d;
+}
+
+.stepper-wrapper {
+  z-index: 1;
+}
+
+.stepper-line {
+  height: 2px;
+  background-color: #333;
+  z-index: -1;
+  width: calc(100% - 40px) !important; 
+  left: 20px !important;
+}
+
+.stepper-item {
+  flex: 1;
+}
+
+.step-circle {
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.alert-dark.border-danger {
+  background-color: rgba(220, 53, 69, 0.05) !important;
+}
