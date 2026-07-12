@@ -127,10 +127,7 @@ const VehicleRegistry = () => {
         fetchVehicles();
     }, []);
 
-    const handleStatusChange = (regNo, newStatus) => {
-        localStorage.setItem(`live_veh_status_${regNo}`, newStatus);
-        setVehicles(prev => prev.map(v => v.regNo === regNo ? { ...v, status: newStatus } : v));
-    };
+
 
     const filteredVehicles = vehicles.filter(vehicle => {
         const liveStatus = localStorage.getItem(`live_veh_status_${vehicle.regNo}`) || vehicle.status;
@@ -309,21 +306,9 @@ const VehicleRegistry = () => {
                                                 <td>{vehicle.odometer}</td>
                                                 <td>{vehicle.cost}</td>
                                                 <td>
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <span className={`badge ${badgeColor} px-2 py-1 rounded`} style={{ minWidth: '80px' }}>
-                                                            {liveStatus}
-                                                        </span>
-                                                        <select
-                                                            className="form-select form-select-sm bg-dark text-light border-secondary"
-                                                            style={{ width: '120px', fontSize: '11px' }}
-                                                            value={liveStatus}
-                                                            onChange={(e) => handleStatusChange(vehicle.regNo, e.target.value)}
-                                                        >
-                                                            <option value="Available">Available</option>
-                                                            <option value="In Shop">In Shop</option>
-                                                            <option value="On Trip">On Trip</option>
-                                                        </select>
-                                                    </div>
+                                                    <span className={`badge ${badgeColor} px-3 py-2 rounded`} style={{ minWidth: '90px' }}>
+                                                        {liveStatus}
+                                                    </span>
                                                 </td>
                                             </tr>
                                         );
