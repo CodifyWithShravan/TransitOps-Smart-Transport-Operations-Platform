@@ -2,29 +2,33 @@ import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/Dashboard.css';
 import { Link } from 'react-router-dom';
+import ComingSoonModal from '../components/ComingSoonModal';
 
 const Dashboard = () => {
     const [data, setData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [comingSoonModule, setComingSoonModule] = useState(null);
 
     const navItems = ['Dashboard', 'Fleet', 'Drivers', 'Trips', 'Maintenance', 'Fuel & Expenses', 'Analytics', 'Settings'];
 
     useEffect(() => {
         const fetchDashboardData = async () => {
+            const liveTrips = JSON.parse(localStorage.getItem('live_dispatched_trips') || '[]');
             try {
                 const response = await fetch('http://localhost:8080/api/dashboard');
                 if (response.ok) {
                     const b = await response.json();
                     setData({
                         stats: [
-                            { title: 'ACTIVE VEHICLES', value: String(b.activeVehicles ?? 0), color: 'primary' },
-                            { title: 'AVAILABLE VEHICLES', value: String(b.availableVehicles ?? 0), color: 'success' },
+                            { title: 'ACTIVE VEHICLES', value: String((b.activeVehicles ?? 0) + liveTrips.length), color: 'primary' },
+                            { title: 'AVAILABLE VEHICLES', value: String(Math.max(0, (b.availableVehicles ?? 0) - liveTrips.length)), color: 'success' },
                             { title: 'VEHICLES IN MAINT.', value: String(b.vehiclesInMaintenance ?? 0), color: 'warning' },
-                            { title: 'ACTIVE TRIPS', value: String(b.activeTrips ?? 0), color: 'info' },
-                            { title: 'FLEET UTILIZATION', value: `${Math.round(b.fleetUtilizationRate || 0)}%`, color: 'success' }
+                            { title: 'ACTIVE TRIPS', value: String((b.activeTrips ?? 0) + liveTrips.length), color: 'info' },
+                            { title: 'FLEET UTILIZATION', value: `${Math.min(100, Math.round(b.fleetUtilizationRate || 0) + liveTrips.length * 15)}%`, color: 'success' }
                         ],
                         recentTrips: [
+                            ...liveTrips,
                             { trip: 'TR001', vehicle: 'KA-01-EQ-1001', driver: 'Ramesh Sharma', status: 'Completed', badge: 'bg-success', eta: '—' },
                             { trip: 'TR002', vehicle: 'MH-12-AB-2002', driver: 'Suresh Patil', status: 'Dispatched', badge: 'bg-primary', eta: '45 min' },
                             { trip: 'TR003', vehicle: 'TN-09-CD-4004', driver: 'Amit Verma', status: 'Draft', badge: 'bg-info', eta: 'Pending' },
@@ -38,8 +42,7 @@ const Dashboard = () => {
                     setIsLoading(false);
                     return;
                 }
-            } catch (ignored) {
-            }
+            } catch (ignored) {}
 
             setData({
                 stats: [
@@ -102,15 +105,26 @@ const Dashboard = () => {
                             if (item === 'Fuel & Expenses') path = "/fuel";
 
                             const isActive = item === 'Dashboard';
+                            const isComingSoon = item === 'Fuel & Expenses' || item === 'Analytics' || item === 'Settings';
 
                             return (
                                 <li className="nav-item w-100" key={index}>
-                                    <Link
-                                        to={path}
-                                        className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}
-                                    >
-                                        {item}
-                                    </Link>
+                                    {isComingSoon ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setComingSoonModule(item)}
+                                            className="nav-link px-4 py-2 text-secondary hover-nav bg-transparent border-0 w-100 text-start"
+                                        >
+                                            {item}
+                                        </button>
+                                    ) : (
+                                        <Link
+                                            to={path}
+                                            className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}
+                                        >
+                                            {item}
+                                        </Link>
+                                    )}
                                 </li>
                             );
                         })}
@@ -133,11 +147,11 @@ const Dashboard = () => {
 
                     <div className="row mb-4 flex-nowrap overflow-auto hide-scrollbar">
                         {data.stats.map((stat, idx) => (
-                            <div className="col-auto px-2" key={idx} style={{ minWidth: '160px' }}>
-                                <div className={`card bg-dark border-secondary border-top-0 border-end-0 border-bottom-0 border-start border-3 border-${stat.color} h-100`}>
-                                    <div className="card-body py-2 px-3">
-                                        <p className="text-muted mb-1 text-uppercase" style={{ fontSize: '10px', letterSpacing: '1px' }}>{stat.title}</p>
-                                        <h3 className="mb-0">{stat.value}</h3>
+                            <div className="col-auto px-2" key={idx} style={{ minWidth: '180px' }}>
+                                <div className={`card border-0 border-start border-4 border-${stat.color} h-100 shadow`} style={{ backgroundColor: '#1e242b' }}>
+                                    <div className="card-body py-3 px-3">
+                                        <p className="text-info mb-1 text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>{stat.title}</p>
+                                        <h2 className="mb-0 text-white fw-bolder">{stat.value}</h2>
                                     </div>
                                 </div>
                             </div>
@@ -162,13 +176,13 @@ const Dashboard = () => {
                                     <tbody>
                                         {data.recentTrips.map((trip, idx) => (
                                             <tr key={idx} className="align-middle">
-                                                <td>{trip.trip}</td>
-                                                <td>{trip.vehicle}</td>
-                                                <td>{trip.driver}</td>
+                                                <td className="fw-bold text-white">{trip.trip}</td>
+                                                <td className="text-light">{trip.vehicle}</td>
+                                                <td className="text-light">{trip.driver}</td>
                                                 <td>
-                                                    <span className={`badge ${trip.badge} px-3 py-2 rounded-pill`}>{trip.status}</span>
+                                                    <span className={`badge ${trip.badge} px-3 py-2 rounded-pill fw-bold`}>{trip.status}</span>
                                                 </td>
-                                                <td className="text-muted">{trip.eta}</td>
+                                                <td className="text-info fw-bold">{trip.eta}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -177,12 +191,12 @@ const Dashboard = () => {
                         </div>
 
                         <div className="col-md-4 pl-md-4">
-                            <h6 className="text-uppercase text-muted mb-3" style={{ letterSpacing: '1px' }}>Vehicle Status</h6>
+                            <h6 className="text-uppercase text-info mb-3 fw-bold" style={{ letterSpacing: '1px' }}>Vehicle Status</h6>
                             {data.vehicleStatuses.map((status, idx) => (
                                 <div className="d-flex align-items-center mb-3" key={idx}>
-                                    <div className="w-25 text-sm text-secondary">{status.label}</div>
-                                    <div className="w-75">
-                                        <div className="progress" style={{ height: '8px', backgroundColor: '#333' }}>
+                                    <div className="w-50 text-white fw-bold small">{status.label} ({status.percent}%)</div>
+                                    <div className="w-50">
+                                        <div className="progress border border-secondary" style={{ height: '10px', backgroundColor: '#111' }}>
                                             <div className={`progress-bar ${status.color}`} role="progressbar" style={{ width: `${status.percent}%` }}></div>
                                         </div>
                                     </div>
@@ -193,6 +207,7 @@ const Dashboard = () => {
                     </div>
                 </div>
             </div>
+            <ComingSoonModal moduleName={comingSoonModule} onClose={() => setComingSoonModule(null)} />
         </div>
     );
 };

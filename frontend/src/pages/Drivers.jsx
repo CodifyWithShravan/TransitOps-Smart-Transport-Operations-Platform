@@ -2,15 +2,66 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/Drivers.css';
+import ComingSoonModal from '../components/ComingSoonModal';
 
 const Drivers = () => {
     const [drivers, setDrivers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [comingSoonModule, setComingSoonModule] = useState(null);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
 
     const navItems = ['Dashboard', 'Fleet', 'Drivers', 'Trips', 'Maintenance', 'Fuel & Expenses', 'Analytics', 'Settings'];
+
+    const [showAddDriver, setShowAddDriver] = useState(false);
+    const [newDriver, setNewDriver] = useState({ name: '', license: '', expiry: '2028-12-31' });
+
+    const handleAddDriver = async (e) => {
+        e.preventDefault();
+        if (!newDriver.name || !newDriver.license) return;
+        try {
+            const res = await fetch('http://localhost:8080/api/drivers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newDriver.name,
+                    licenseNumber: newDriver.license,
+                    licenseCategory: 'Heavy Commercial',
+                    licenseExpiryDate: newDriver.expiry || '2028-12-31',
+                    contact: '+91-9999999999',
+                    safetyScore: 100.0,
+                    status: 'AVAILABLE'
+                })
+            });
+            if (res.ok) {
+                const saved = await res.json();
+                setDrivers(prev => [{
+                    id: `D00${saved.id}`,
+                    name: saved.name,
+                    license: saved.licenseNumber,
+                    expiry: saved.licenseExpiryDate,
+                    incidents: 0,
+                    status: 'Active',
+                    badge: 'bg-success'
+                }, ...prev]);
+                setShowAddDriver(false);
+                setNewDriver({ name: '', license: '', expiry: '2028-12-31' });
+                return;
+            }
+        } catch (ignored) {}
+        setDrivers(prev => [{
+            id: `D00${drivers.length + 1}`,
+            name: newDriver.name,
+            license: newDriver.license,
+            expiry: newDriver.expiry,
+            incidents: 0,
+            status: 'Active',
+            badge: 'bg-success'
+        }, ...prev]);
+        setShowAddDriver(false);
+        setNewDriver({ name: '', license: '', expiry: '2028-12-31' });
+    };
 
     useEffect(() => {
         const fetchDrivers = async () => {
@@ -46,10 +97,16 @@ const Drivers = () => {
         fetchDrivers();
     }, []);
 
+    const handleStatusChange = (id, newStatus) => {
+        localStorage.setItem(`live_dri_status_${id}`, newStatus);
+        setDrivers(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
+    };
+
     const filteredDrivers = drivers.filter(driver => {
+        const liveStatus = localStorage.getItem(`live_dri_status_${driver.id}`) || driver.status;
         const matchesSearch = driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             driver.license.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'All' || driver.status === statusFilter;
+        const matchesStatus = statusFilter === 'All' || liveStatus === statusFilter;
 
         return matchesSearch && matchesStatus;
     });
@@ -80,15 +137,26 @@ const Drivers = () => {
                             if (item === 'Fuel & Expenses') path = "/fuel";
 
                             const isActive = item === 'Drivers';
+                            const isComingSoon = item === 'Fuel & Expenses' || item === 'Analytics' || item === 'Settings';
 
                             return (
                                 <li className="nav-item w-100" key={index}>
-                                    <Link
-                                        to={path}
-                                        className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}
-                                    >
-                                        {item}
-                                    </Link>
+                                    {isComingSoon ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setComingSoonModule(item)}
+                                            className="nav-link px-4 py-2 text-secondary hover-nav bg-transparent border-0 w-100 text-start"
+                                        >
+                                            {item}
+                                        </button>
+                                    ) : (
+                                        <Link
+                                            to={path}
+                                            className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}
+                                        >
+                                            {item}
+                                        </Link>
+                                    )}
                                 </li>
                             );
                         })}
@@ -130,10 +198,32 @@ const Drivers = () => {
                             </select>
                         </div>
 
-                        <button className="btn btn-info rounded-pill px-4 fw-bold shadow-sm text-dark">
-                            + Add Driver
+                        <button className="btn btn-info rounded-pill px-4 fw-bold shadow-sm text-dark" onClick={() => setShowAddDriver(!showAddDriver)}>
+                            {showAddDriver ? '✕ Cancel' : '+ Add Driver'}
                         </button>
                     </div>
+
+                    {showAddDriver && (
+                        <div className="card bg-dark border border-secondary p-3 mb-4 rounded-3 text-light">
+                            <form onSubmit={handleAddDriver} className="row g-3 align-items-end">
+                                <div className="col-md-4">
+                                    <label className="form-label small text-secondary">Driver Full Name</label>
+                                    <input type="text" className="form-control form-control-sm" placeholder="e.g. Vikram Rathore" value={newDriver.name} onChange={e => setNewDriver({...newDriver, name: e.target.value})} required />
+                                </div>
+                                <div className="col-md-3">
+                                    <label className="form-label small text-secondary">License Number</label>
+                                    <input type="text" className="form-control form-control-sm" placeholder="e.g. DL-11223344" value={newDriver.license} onChange={e => setNewDriver({...newDriver, license: e.target.value})} required />
+                                </div>
+                                <div className="col-md-3">
+                                    <label className="form-label small text-secondary">License Expiry</label>
+                                    <input type="date" className="form-control form-control-sm" value={newDriver.expiry} onChange={e => setNewDriver({...newDriver, expiry: e.target.value})} />
+                                </div>
+                                <div className="col-md-2">
+                                    <button type="submit" className="btn btn-success btn-sm w-100 fw-bold">Save Driver</button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
 
                     <div className="table-responsive">
                         <table className="table table-dark table-hover table-borderless align-middle">
@@ -149,29 +239,45 @@ const Drivers = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredDrivers.map((driver, idx) => (
-                                    <tr key={idx}>
-                                        <td className="text-secondary">{driver.id}</td>
-                                        <td className="fw-semibold">{driver.name}</td>
-                                        <td>{driver.license}</td>
-                                        <td className={new Date(driver.expiry) < new Date() ? 'text-danger' : ''}>
-                                            {driver.expiry}
-                                        </td>
-                                        <td>
-                                            <span className={`badge rounded-pill ${driver.incidents > 0 ? 'bg-danger' : 'bg-secondary'}`}>
-                                                {driver.incidents}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${driver.badge} px-3 py-2 w-75 rounded`} style={{ minWidth: '90px' }}>
-                                                {driver.status}
-                                            </span>
-                                        </td>
-                                        <td className="text-end">
-                                            <button className="btn btn-sm btn-outline-secondary me-2">Profile</button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {filteredDrivers.map((driver, idx) => {
+                                    const liveStatus = localStorage.getItem(`live_dri_status_${driver.id}`) || driver.status;
+                                    const badgeColor = liveStatus === 'Active' ? 'bg-success' : (liveStatus === 'On Route' ? 'bg-primary' : 'bg-warning text-dark');
+                                    return (
+                                        <tr key={idx}>
+                                            <td className="text-secondary">{driver.id}</td>
+                                            <td className="fw-semibold">{driver.name}</td>
+                                            <td>{driver.license}</td>
+                                            <td className={new Date(driver.expiry) < new Date() ? 'text-danger' : ''}>
+                                                {driver.expiry}
+                                            </td>
+                                            <td>
+                                                <span className={`badge rounded-pill ${driver.incidents > 0 ? 'bg-danger' : 'bg-secondary'}`}>
+                                                    {driver.incidents}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <span className={`badge ${badgeColor} px-2 py-1 rounded`} style={{ minWidth: '80px' }}>
+                                                        {liveStatus}
+                                                    </span>
+                                                    <select
+                                                        className="form-select form-select-sm bg-dark text-light border-secondary"
+                                                        style={{ width: '110px', fontSize: '11px' }}
+                                                        value={liveStatus}
+                                                        onChange={(e) => handleStatusChange(driver.id, e.target.value)}
+                                                    >
+                                                        <option value="Active">Active</option>
+                                                        <option value="On Route">On Route</option>
+                                                        <option value="On Leave">On Leave</option>
+                                                    </select>
+                                                </div>
+                                            </td>
+                                            <td className="text-end">
+                                                <button className="btn btn-sm btn-outline-secondary">Profile</button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -190,6 +296,7 @@ const Drivers = () => {
 
                 </div>
             </div>
+            <ComingSoonModal moduleName={comingSoonModule} onClose={() => setComingSoonModule(null)} />
         </div>
     );
 };

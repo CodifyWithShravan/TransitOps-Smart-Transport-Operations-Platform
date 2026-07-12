@@ -1,0 +1,30 @@
+/* Global Input & Select Visibility Fixes — Ensures high contrast text inside all textboxes/dropdowns without altering UI layout */
+.form-control,
+.form-select,
+input.form-control,
+select.form-select {
+  background-color: #1e2227 !important;
+  color: #ffffff !important;
+  border: 1px solid #495057 !important;
+}
+
+.form-control::placeholder,
+input::placeholder {
+  color: #adb5bd !important;
+  opacity: 1 !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+input.form-control:focus,
+select.form-select:focus {
+  background-color: #1e2227 !important;
+  color: #ffffff !important;
+  border-color: #0d6efd !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+}
+
+.form-select option {
+  background-color: #1e2227 !important;
+  color: #ffffff !important;
+}
