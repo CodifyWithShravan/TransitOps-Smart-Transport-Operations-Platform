@@ -80,6 +80,7 @@ const Dashboard = () => {
                         {navItems.map((item, index) => {
                             let path = "/";
                             if (item === 'Fleet') path = "/fleet";
+                            if (item === 'Drivers') path = "/drivers";
 
                             const isActive = item === 'Dashboard';
 
