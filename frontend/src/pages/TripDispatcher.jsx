@@ -56,16 +56,17 @@ const TripDispatcher = () => {
             const tripPayload = {
                 vehicleId: Number(formData.vehicleId),
                 driverId: Number(formData.driverId),
-                origin: formData.origin || 'Warehouse A',
+                source: formData.origin || 'Warehouse A',
                 destination: formData.destination || 'Hub B',
-                cargoWeightKg: Number(formData.cargoWeight) || 500
+                cargoWeight: Number(formData.cargoWeight) || 500,
+                plannedDistance: 100
             };
             
             // Backend should atomically create the trip and lock the vehicle and driver
             const newTrip = await tripApi.create(tripPayload);
             await tripApi.dispatch(newTrip.id);
 
-            setDispatchMessage(`✅ Trip #${newTrip.id} dispatched! (${newTrip.origin} → ${newTrip.destination})`);
+            setDispatchMessage(`✅ Trip #${newTrip.id} dispatched! (${newTrip.source} → ${newTrip.destination})`);
             setFormData({ vehicleId: '', driverId: '', origin: '', destination: '', cargoWeight: '', status: 'Draft' });
             setTimeout(() => setDispatchMessage(null), 4000);
             
