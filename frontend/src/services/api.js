@@ -1,58 +1,60 @@
-const BASE_URL = 'http://localhost:8080/api';
+import axios from 'axios';
 
-/**
- * Helper function to handle fetch requests with JSON parsing and error throwing.
- */
-async function request(endpoint, options = {}) {
-  const headers = {
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  headers: {
     'Content-Type': 'application/json',
-    ...(options.headers || {}),
-  };
+  },
+});
 
-  // Add Authorization header if token exists in localStorage
-  const token = localStorage.getItem('transitops_token');
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+// Request interceptor for adding JWT token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('transitops_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
+);
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `API Error: ${response.statusText}`);
+// Response interceptor for handling 401 errors
+apiClient.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Clear token and redirect to login if unauthorized
+      localStorage.removeItem('transitops_token');
+      localStorage.removeItem('transitops_user');
+      window.location.href = '/';
+    }
+    
+    // Extract backend error message if available
+    const message = error.response?.data?.message || error.message || 'API Error';
+    return Promise.reject(new Error(message));
   }
-
-  return response.json();
-}
+);
 
 // ==========================================
 // AUTHENTICATION APIs
 // ==========================================
 export const authApi = {
-  login: (credentials) =>
-    request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    }),
-
-  register: (payload) =>
-    request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  getCurrentUser: () => request('/users/me'),
+  login: (credentials) => apiClient.post('/auth/login', credentials),
+  register: (payload) => apiClient.post('/auth/register', payload),
+  getCurrentUser: () => apiClient.get('/users/me'),
 };
 
 // ==========================================
 // DASHBOARD & ANALYTICS APIs
 // ==========================================
 export const dashboardApi = {
-  getKPIs: () => request('/dashboard'),
-  getVehicleAnalytics: () => request('/dashboard/analytics/vehicles'),
+  getKPIs: () => apiClient.get('/dashboard'),
+  getVehicleAnalytics: () => apiClient.get('/dashboard/analytics/vehicles'),
 };
 
 // ==========================================
@@ -60,26 +62,11 @@ export const dashboardApi = {
 // ==========================================
 export const vehicleApi = {
   getAll: (status) =>
-    request(status && status !== 'All' ? `/vehicles?status=${status}` : '/vehicles'),
-
-  getById: (id) => request(`/vehicles/${id}`),
-
-  create: (vehicleData) =>
-    request('/vehicles', {
-      method: 'POST',
-      body: JSON.stringify(vehicleData),
-    }),
-
-  update: (id, vehicleData) =>
-    request(`/vehicles/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(vehicleData),
-    }),
-
-  delete: (id) =>
-    request(`/vehicles/${id}`, {
-      method: 'DELETE',
-    }),
+    apiClient.get(status && status !== 'All' ? `/vehicles?status=${status}` : '/vehicles'),
+  getById: (id) => apiClient.get(`/vehicles/${id}`),
+  create: (vehicleData) => apiClient.post('/vehicles', vehicleData),
+  update: (id, vehicleData) => apiClient.put(`/vehicles/${id}`, vehicleData),
+  delete: (id) => apiClient.delete(`/vehicles/${id}`),
 };
 
 // ==========================================
@@ -87,15 +74,9 @@ export const vehicleApi = {
 // ==========================================
 export const driverApi = {
   getAll: (status) =>
-    request(status && status !== 'All' ? `/drivers?status=${status}` : '/drivers'),
-
-  getById: (id) => request(`/drivers/${id}`),
-
-  create: (driverData) =>
-    request('/drivers', {
-      method: 'POST',
-      body: JSON.stringify(driverData),
-    }),
+    apiClient.get(status && status !== 'All' ? `/drivers?status=${status}` : '/drivers'),
+  getById: (id) => apiClient.get(`/drivers/${id}`),
+  create: (driverData) => apiClient.post('/drivers', driverData),
 };
 
 // ==========================================
@@ -103,26 +84,19 @@ export const driverApi = {
 // ==========================================
 export const tripApi = {
   getAll: (status) =>
-    request(status && status !== 'All' ? `/trips?status=${status}` : '/trips'),
+    apiClient.get(status && status !== 'All' ? `/trips?status=${status}` : '/trips'),
+  create: (tripData) => apiClient.post('/trips', tripData),
+  dispatch: (id) => apiClient.post(`/trips/${id}/dispatch`),
+  complete: (id) => apiClient.post(`/trips/${id}/complete`),
+  cancel: (id) => apiClient.post(`/trips/${id}/cancel`),
+};
 
-  create: (tripData) =>
-    request('/trips', {
-      method: 'POST',
-      body: JSON.stringify(tripData),
-    }),
-
-  dispatch: (id) =>
-    request(`/trips/${id}/dispatch`, {
-      method: 'POST',
-    }),
-
-  complete: (id) =>
-    request(`/trips/${id}/complete`, {
-      method: 'POST',
-    }),
-
-  cancel: (id) =>
-    request(`/trips/${id}/cancel`, {
-      method: 'POST',
-    }),
+// ==========================================
+// MAINTENANCE APIs
+// ==========================================
+export const maintenanceApi = {
+  getAll: (status) =>
+    apiClient.get(status && status !== 'All' ? `/maintenance?status=${status}` : '/maintenance'),
+  create: (maintenanceData) => apiClient.post('/maintenance', maintenanceData),
+  complete: (id, completionData) => apiClient.post(`/maintenance/${id}/complete`, completionData),
 };

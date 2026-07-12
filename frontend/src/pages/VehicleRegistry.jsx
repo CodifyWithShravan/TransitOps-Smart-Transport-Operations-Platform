@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/VehicleRegistry.css';
 import { Link } from 'react-router-dom';
 import ComingSoonModal from '../components/ComingSoonModal';
+import { vehicleApi } from '../services/api';
 
 const VehicleRegistry = () => {
     const [vehicles, setVehicles] = useState([]);
@@ -24,93 +25,64 @@ const VehicleRegistry = () => {
         e.preventDefault();
         if (!newVehicle.regNo || !newVehicle.makeModel) return;
         try {
-            const res = await fetch('http://localhost:8080/api/vehicles', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    registrationNumber: newVehicle.regNo,
-                    model: newVehicle.makeModel,
-                    type: newVehicle.type,
-                    maxLoadCapacity: parseFloat(newVehicle.capacity) || 5000,
-                    odometer: parseFloat(newVehicle.odometer) || 0,
-                    acquisitionCost: parseFloat(newVehicle.cost) || 1500000,
-                    status: 'AVAILABLE'
-                })
+            const saved = await vehicleApi.create({
+                registrationNumber: newVehicle.regNo,
+                model: newVehicle.makeModel,
+                type: newVehicle.type,
+                maxLoadCapacity: parseFloat(newVehicle.capacity) || 5000,
+                odometer: parseFloat(newVehicle.odometer) || 0,
+                acquisitionCost: parseFloat(newVehicle.cost) || 1500000,
+                status: 'AVAILABLE'
             });
-            if (res.ok) {
-                const saved = await res.json();
-                setVehicles(prev => [{
-                    regNo: saved.registrationNumber,
-                    makeModel: saved.model,
-                    type: saved.type,
-                    capacity: `${saved.maxLoadCapacity} kg`,
-                    odometer: `${saved.odometer} km`,
-                    cost: `₹${saved.acquisitionCost}`,
-                    status: 'Available',
-                    badge: 'bg-success'
-                }, ...prev]);
-                setShowAddForm(false);
-                setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
-                return;
-            }
-        } catch (ignored) {}
-        setVehicles(prev => [{
-            regNo: newVehicle.regNo,
-            makeModel: newVehicle.makeModel,
-            type: newVehicle.type,
-            capacity: newVehicle.capacity,
-            odometer: `${newVehicle.odometer} km`,
-            cost: `₹${newVehicle.cost}`,
-            status: 'Available',
-            badge: 'bg-success'
-        }, ...prev]);
-        setShowAddForm(false);
-        setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
+
+            const newEntry = {
+                regNo: saved.registrationNumber,
+                makeModel: saved.model,
+                type: saved.type,
+                capacity: `${saved.maxLoadCapacity} kg`,
+                odometer: `${saved.odometer} km`,
+                cost: `₹${saved.acquisitionCost}`,
+                status: 'Available',
+                badge: 'bg-success'
+            };
+            
+            setVehicles(prev => [newEntry, ...prev]);
+            setShowAddForm(false);
+            setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
+        } catch (error) {
+            alert(`Failed to add vehicle: ${error.message}`);
+        }
     };
 
     useEffect(() => {
         const fetchVehicles = async () => {
             try {
-                const response = await fetch('http://localhost:8080/api/vehicles');
-                if (response.ok) {
-                    const data = await response.json();
-                    const mapped = data.map(v => ({
-                        regNo: v.registrationNumber || 'N/A',
-                        makeModel: v.model || 'Unknown',
-                        type: v.type || 'Truck',
-                        capacity: `${v.maxLoadCapacity || 0} kg`,
-                        odometer: `${v.odometer || 0} km`,
-                        cost: `₹${v.acquisitionCost || 0}`,
-                        status: v.status === 'ON_TRIP' ? 'On Trip' : (v.status === 'IN_SHOP' ? 'In Shop' : (v.status === 'RETIRED' ? 'Retired' : 'Available')),
-                        badge: v.status === 'ON_TRIP' ? 'bg-primary' : (v.status === 'IN_SHOP' ? 'bg-warning text-dark' : (v.status === 'RETIRED' ? 'bg-danger' : 'bg-success'))
-                    }));
-                    setVehicles(mapped);
-                    setIsLoading(false);
-                    return;
-                }
-            } catch (ignored) {}
-
-            setTimeout(() => {
-                setVehicles([
-                    { regNo: 'GJ01AB452', makeModel: 'VAN-05', type: 'Van', capacity: '500 kg', odometer: '74,000', cost: '6,20,000', status: 'Available', badge: 'bg-success' },
-                    { regNo: 'GJ01AB998', makeModel: 'TRUCK-11', type: 'Truck', capacity: '5 Ton', odometer: '182,000', cost: '24,50,000', status: 'On Trip', badge: 'bg-primary' },
-                    { regNo: 'GJ01AB1120', makeModel: 'MINI-03', type: 'Mini', capacity: '1 Ton', odometer: '66,000', cost: '4,10,000', status: 'In Shop', badge: 'bg-warning text-dark' },
-                    { regNo: 'GJ01AB009', makeModel: 'VAN-09', type: 'Van', capacity: '750 kg', odometer: '241,900', cost: '5,90,000', status: 'Retired', badge: 'bg-danger' },
-                ]);
+                const data = await vehicleApi.getAll();
+                const mapped = data.map(v => ({
+                    regNo: v.registrationNumber || 'N/A',
+                    makeModel: v.model || 'Unknown',
+                    type: v.type || 'Truck',
+                    capacity: `${v.maxLoadCapacity || 0} kg`,
+                    odometer: `${v.odometer || 0} km`,
+                    cost: `₹${v.acquisitionCost || 0}`,
+                    status: v.status === 'ON_TRIP' ? 'On Trip' : (v.status === 'IN_SHOP' ? 'In Shop' : (v.status === 'RETIRED' ? 'Retired' : 'Available')),
+                    badge: v.status === 'ON_TRIP' ? 'bg-primary' : (v.status === 'IN_SHOP' ? 'bg-warning text-dark' : (v.status === 'RETIRED' ? 'bg-danger' : 'bg-success'))
+                }));
+                setVehicles(mapped);
+            } catch (error) {
+                console.error("Failed to fetch vehicles:", error);
+            } finally {
                 setIsLoading(false);
-            }, 500);
+            }
         };
 
         fetchVehicles();
     }, []);
 
-    const handleStatusChange = (regNo, newStatus) => {
-        localStorage.setItem(`live_veh_status_${regNo}`, newStatus);
-        setVehicles(prev => prev.map(v => v.regNo === regNo ? { ...v, status: newStatus } : v));
-    };
+
 
     const filteredVehicles = vehicles.filter(vehicle => {
-        const liveStatus = localStorage.getItem(`live_veh_status_${vehicle.regNo}`) || vehicle.status;
+        const liveStatus = vehicle.status;
         const matchesSearch = vehicle.regNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
             vehicle.makeModel.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = typeFilter === 'All' || vehicle.type === typeFilter;
@@ -145,6 +117,9 @@ const VehicleRegistry = () => {
                             if (item === 'Drivers') path = "/drivers";
                             if (item === 'Trips') path = "/trips";
                             if (item === 'Maintenance') path = "/maintenance";
+                            if (item === 'Fuel & Expenses') path = "/fuel";
+
+
                             const isActive = item === 'Fleet';
                             const isComingSoon = item === 'Fuel & Expenses' || item === 'Analytics' || item === 'Settings';
 
@@ -227,15 +202,15 @@ const VehicleRegistry = () => {
                             <form onSubmit={handleAddVehicle} className="row g-2 align-items-end">
                                 <div className="col-md-3">
                                     <label className="form-label small text-secondary">Reg Number</label>
-                                    <input type="text" className="form-control form-control-sm" placeholder="e.g. MH-12-AB-9999" value={newVehicle.regNo} onChange={e => setNewVehicle({...newVehicle, regNo: e.target.value})} required />
+                                    <input type="text" className="form-control form-control-sm" placeholder="e.g. MH-12-AB-9999" value={newVehicle.regNo} onChange={e => setNewVehicle({ ...newVehicle, regNo: e.target.value })} required />
                                 </div>
                                 <div className="col-md-2">
                                     <label className="form-label small text-secondary">Make / Model</label>
-                                    <input type="text" className="form-control form-control-sm" placeholder="e.g. Volvo FH16" value={newVehicle.makeModel} onChange={e => setNewVehicle({...newVehicle, makeModel: e.target.value})} required />
+                                    <input type="text" className="form-control form-control-sm" placeholder="e.g. Volvo FH16" value={newVehicle.makeModel} onChange={e => setNewVehicle({ ...newVehicle, makeModel: e.target.value })} required />
                                 </div>
                                 <div className="col-md-2">
                                     <label className="form-label small text-secondary">Type</label>
-                                    <select className="form-select form-select-sm" value={newVehicle.type} onChange={e => setNewVehicle({...newVehicle, type: e.target.value})}>
+                                    <select className="form-select form-select-sm" value={newVehicle.type} onChange={e => setNewVehicle({ ...newVehicle, type: e.target.value })}>
                                         <option value="Truck">Truck</option>
                                         <option value="Van">Van</option>
                                         <option value="Mini">Mini</option>
@@ -243,11 +218,11 @@ const VehicleRegistry = () => {
                                 </div>
                                 <div className="col-md-2">
                                     <label className="form-label small text-secondary">Capacity (kg)</label>
-                                    <input type="text" className="form-control form-control-sm" placeholder="5000" value={newVehicle.capacity} onChange={e => setNewVehicle({...newVehicle, capacity: e.target.value})} />
+                                    <input type="text" className="form-control form-control-sm" placeholder="5000" value={newVehicle.capacity} onChange={e => setNewVehicle({ ...newVehicle, capacity: e.target.value })} />
                                 </div>
                                 <div className="col-md-2">
                                     <label className="form-label small text-secondary">Acq. Cost (₹)</label>
-                                    <input type="number" className="form-control form-control-sm" placeholder="1500000" value={newVehicle.cost} onChange={e => setNewVehicle({...newVehicle, cost: e.target.value})} />
+                                    <input type="number" className="form-control form-control-sm" placeholder="1500000" value={newVehicle.cost} onChange={e => setNewVehicle({ ...newVehicle, cost: e.target.value })} />
                                 </div>
                                 <div className="col-md-1">
                                     <button type="submit" className="btn btn-success btn-sm w-100 fw-bold">Save</button>
@@ -272,7 +247,7 @@ const VehicleRegistry = () => {
                             <tbody>
                                 {filteredVehicles.length > 0 ? (
                                     filteredVehicles.map((vehicle, idx) => {
-                                        const liveStatus = localStorage.getItem(`live_veh_status_${vehicle.regNo}`) || vehicle.status;
+                                        const liveStatus = vehicle.status;
                                         const badgeColor = liveStatus === 'On Trip' ? 'bg-primary' : (liveStatus === 'In Shop' ? 'bg-warning text-dark' : (liveStatus === 'Available' ? 'bg-success' : 'bg-secondary'));
                                         return (
                                             <tr key={idx}>
@@ -283,21 +258,9 @@ const VehicleRegistry = () => {
                                                 <td>{vehicle.odometer}</td>
                                                 <td>{vehicle.cost}</td>
                                                 <td>
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <span className={`badge ${badgeColor} px-2 py-1 rounded`} style={{ minWidth: '80px' }}>
-                                                            {liveStatus}
-                                                        </span>
-                                                        <select
-                                                            className="form-select form-select-sm bg-dark text-light border-secondary"
-                                                            style={{ width: '120px', fontSize: '11px' }}
-                                                            value={liveStatus}
-                                                            onChange={(e) => handleStatusChange(vehicle.regNo, e.target.value)}
-                                                        >
-                                                            <option value="Available">Available</option>
-                                                            <option value="In Shop">In Shop</option>
-                                                            <option value="On Trip">On Trip</option>
-                                                        </select>
-                                                    </div>
+                                                    <span className={`badge ${badgeColor} px-3 py-2 rounded`} style={{ minWidth: '90px' }}>
+                                                        {liveStatus}
+                                                    </span>
                                                 </td>
                                             </tr>
                                         );

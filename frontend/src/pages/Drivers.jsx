@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/Drivers.css';
 import ComingSoonModal from '../components/ComingSoonModal';
+import { driverApi } from '../services/api';
 
 const Drivers = () => {
     const [drivers, setDrivers] = useState([]);
@@ -21,90 +22,55 @@ const Drivers = () => {
         e.preventDefault();
         if (!newDriver.name || !newDriver.license) return;
         try {
-            const res = await fetch('http://localhost:8080/api/drivers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: newDriver.name,
-                    licenseNumber: newDriver.license,
-                    licenseCategory: 'Heavy Commercial',
-                    licenseExpiryDate: newDriver.expiry || '2028-12-31',
-                    contact: '+91-9999999999',
-                    safetyScore: 100.0,
-                    status: 'AVAILABLE'
-                })
+            await driverApi.create({
+                name: newDriver.name,
+                licenseNumber: newDriver.license,
+                licenseCategory: 'Heavy Commercial',
+                licenseExpiryDate: newDriver.expiry || '2028-12-31',
+                contact: '+91-9999999999',
+                safetyScore: 100.0,
+                status: 'AVAILABLE'
             });
-            if (res.ok) {
-                const saved = await res.json();
-                setDrivers(prev => [{
-                    id: `D00${saved.id}`,
-                    name: saved.name,
-                    license: saved.licenseNumber,
-                    expiry: saved.licenseExpiryDate,
-                    incidents: 0,
-                    status: 'Active',
-                    badge: 'bg-success'
-                }, ...prev]);
-                setShowAddDriver(false);
-                setNewDriver({ name: '', license: '', expiry: '2028-12-31' });
-                return;
-            }
-        } catch (ignored) {}
-        setDrivers(prev => [{
-            id: `D00${drivers.length + 1}`,
-            name: newDriver.name,
-            license: newDriver.license,
-            expiry: newDriver.expiry,
-            incidents: 0,
-            status: 'Active',
-            badge: 'bg-success'
-        }, ...prev]);
-        setShowAddDriver(false);
-        setNewDriver({ name: '', license: '', expiry: '2028-12-31' });
+            
+            setShowAddDriver(false);
+            setNewDriver({ name: '', license: '', expiry: '2028-12-31' });
+            fetchDrivers();
+        } catch (error) {
+            alert(`Failed to add driver: ${error.message}`);
+        }
+    };
+
+    const fetchDrivers = async () => {
+        try {
+            const data = await driverApi.getAll();
+            const mapped = data.map(d => ({
+                id: d.id,
+                name: d.name || 'Unknown',
+                license: d.licenseNumber || 'DL-N/A',
+                expiry: d.licenseExpiryDate || 'N/A',
+                incidents: d.safetyScore < 90 ? 2 : (d.safetyScore < 95 ? 1 : 0),
+                status: d.status === 'ON_TRIP' ? 'On Trip' : (d.status === 'SUSPENDED' ? 'Suspended' : 'Active')
+            }));
+            setDrivers(mapped.sort((a,b) => b.id - a.id));
+        } catch (error) {
+            console.error("Failed to fetch drivers:", error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     useEffect(() => {
-        const fetchDrivers = async () => {
-            try {
-                const response = await fetch('http://localhost:8080/api/drivers');
-                if (response.ok) {
-                    const data = await response.json();
-                    const mapped = data.map(d => ({
-                        id: `D00${d.id || 1}`,
-                        name: d.name || 'Unknown',
-                        license: d.licenseNumber || 'DL-N/A',
-                        expiry: d.licenseExpiryDate || 'N/A',
-                        incidents: d.safetyScore < 90 ? 2 : (d.safetyScore < 95 ? 1 : 0),
-                        status: d.status === 'ON_TRIP' ? 'On Trip' : (d.status === 'SUSPENDED' ? 'Suspended' : 'Active'),
-                        badge: d.status === 'ON_TRIP' ? 'bg-primary' : (d.status === 'SUSPENDED' ? 'bg-danger' : 'bg-success')
-                    }));
-                    setDrivers(mapped);
-                    setIsLoading(false);
-                    return;
-                }
-            } catch (ignored) {}
-
-            setTimeout(() => {
-                setDrivers([
-                    { id: 'D001', name: 'Alex Mercer', license: 'DL-99382', expiry: '2027-05-12', incidents: 0, status: 'Active', badge: 'bg-success' },
-                    { id: 'D002', name: 'Priya Sharma', license: 'DL-44102', expiry: '2024-11-03', incidents: 1, status: 'Active', badge: 'bg-success' },
-                    { id: 'D003', name: 'John Doe', license: 'DL-11094', expiry: '2025-01-20', incidents: 3, status: 'Suspended', badge: 'bg-danger' },
-                    { id: 'D004', name: 'Sarah Connor', license: 'DL-88210', expiry: '2026-08-15', incidents: 0, status: 'On Leave', badge: 'bg-secondary' },
-                ]);
-                setIsLoading(false);
-            }, 500);
-        };
-
         fetchDrivers();
     }, []);
 
-    const handleStatusChange = (id, newStatus) => {
-        localStorage.setItem(`live_dri_status_${id}`, newStatus);
+    const handleStatusChange = async (id, newStatus) => {
+        // You would typically make an API call to update driver status here
+        // For now, updating local state until the backend has a specific endpoint for arbitrary status updates
         setDrivers(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
     };
 
     const filteredDrivers = drivers.filter(driver => {
-        const liveStatus = localStorage.getItem(`live_dri_status_${driver.id}`) || driver.status;
+        const liveStatus = driver.status;
         const matchesSearch = driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             driver.license.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'All' || liveStatus === statusFilter;
@@ -135,6 +101,7 @@ const Drivers = () => {
                             if (item === 'Drivers') path = "/drivers";
                             if (item === 'Trips') path = "/trips";
                             if (item === 'Maintenance') path = "/maintenance";
+                            if (item === 'Fuel & Expenses') path = "/fuel";
 
                             const isActive = item === 'Drivers';
                             const isComingSoon = item === 'Fuel & Expenses' || item === 'Analytics' || item === 'Settings';
@@ -240,11 +207,11 @@ const Drivers = () => {
                             </thead>
                             <tbody>
                                 {filteredDrivers.map((driver, idx) => {
-                                    const liveStatus = localStorage.getItem(`live_dri_status_${driver.id}`) || driver.status;
+                                    const liveStatus = driver.status;
                                     const badgeColor = liveStatus === 'Active' ? 'bg-success' : (liveStatus === 'On Route' ? 'bg-primary' : 'bg-warning text-dark');
                                     return (
                                         <tr key={idx}>
-                                            <td className="text-secondary">{driver.id}</td>
+                                            <td className="text-secondary">D00{driver.id}</td>
                                             <td className="fw-semibold">{driver.name}</td>
                                             <td>{driver.license}</td>
                                             <td className={new Date(driver.expiry) < new Date() ? 'text-danger' : ''}>

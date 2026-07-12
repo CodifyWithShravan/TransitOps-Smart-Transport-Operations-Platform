@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
-// Using root-relative path resolution so Vite finds it flawlessly in /src/styles/
-import styles from '/src/styles/AuthPage.module.css';
+import styles from './AuthPage.module.css';
+import { authApi } from './services/api';
 
 const AuthPage = () => {
+  // 1. Form & Mode States
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('raven.k@transitops.in');
   const [password, setPassword] = useState('********');
-  const [role, setRole] = useState('Dispatcher');
+  const [role, setRole] = useState('DISPATCHER');
   const [rememberMe, setRememberMe] = useState(true);
+
+  // 2. Error and Loading States
   const [error, setError] = useState({
-    visible: true,
-    message: 'Invalid credentials. Account locked after 5 failed attempts.',
+    visible: false,
+    message: '',
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -17,8 +22,31 @@ const AuthPage = () => {
     e.preventDefault();
     setError({ visible: false, message: '' });
     setIsLoading(true);
-    console.log('Payload:', { email, password, role, rememberMe });
-    setIsLoading(false);
+
+    try {
+      let data;
+      if (isSignUp) {
+        console.log('Registering user:', { name, email, role });
+        data = await authApi.register({ name, email, password, role });
+      } else {
+        console.log('Logging in user:', { email });
+        data = await authApi.login({ email, password });
+      }
+
+      // Store token and redirect
+      localStorage.setItem('transitops_token', data.token);
+      localStorage.setItem('transitops_user', JSON.stringify(data.user || { name, email, role }));
+      window.location.href = '/';
+    } catch (err) {
+      setError({ visible: true, message: err.message || 'Authentication failed. Please check your details.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleAuthMode = () => {
+    setIsSignUp(!isSignUp);
+    setError({ visible: false, message: '' });
   };
 
   return (
@@ -40,6 +68,8 @@ const AuthPage = () => {
         </div>
         <div className={styles.footerText}>TRANSITOPS © 2026 · RBAC ENH</div>
       </div>
+
+      {/* Right Login/Register Panel */}
       <div className={styles.rightPanel}>
         {error.visible && (
           <div className={styles.errorBox}>
@@ -48,8 +78,29 @@ const AuthPage = () => {
           </div>
         )}
         <form className={styles.loginForm} onSubmit={handleSubmit}>
-          <h2 className={styles.formTitle}>Sign in to your account</h2>
-          <p className={styles.formSubtitle}>Enter your credentials to continue</p>
+          <h2 className={styles.formTitle}>
+            {isSignUp ? 'Create your account' : 'Sign in to your account'}
+          </h2>
+          <p className={styles.formSubtitle}>
+            {isSignUp ? 'Sign up to access the TransitOps platform' : 'Enter your credentials to continue'}
+          </p>
+
+          {/* Name Input (Only on Sign Up) */}
+          {isSignUp && (
+            <div className={styles.inputGroup}>
+              <label htmlFor="name">FULL NAME</label>
+              <input
+                type="text"
+                id="name"
+                placeholder="e.g. Raven K."
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required={isSignUp}
+              />
+            </div>
+          )}
+
+          {/* Email Input */}
           <div className={styles.inputGroup}>
             <label htmlFor="email">EMAIL</label>
             <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -58,24 +109,60 @@ const AuthPage = () => {
             <label htmlFor="password">PASSWORD</label>
             <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
-          <div className={styles.inputGroup}>
-            <label htmlFor="role">ROLE (RBAC)</label>
-            <select id="role" value={role} onChange={(e) => setRole(e.target.value)}>
-              <option value="Fleet Manager">Fleet Manager</option>
-              <option value="Dispatcher">Dispatcher</option>
-              <option value="Safety Officer">Safety Officer</option>
-              <option value="Financial Analyst">Financial Analyst</option>
-            </select>
-          </div>
-          <div className={styles.formOptions}>
-            <label className={styles.checkboxLabel}>
-              <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
-              <span>Remember me</span>
-            </label>
-            <a href="#forgot" className={styles.forgotLink}>Forgot password?</a>
-          </div>
-          <button type="submit" className={styles.submitBtn} disabled={isLoading}>Sign In</button>
+
+          {/* Role (RBAC) Dropdown - Always visible or on Sign Up */}
+          {isSignUp && (
+            <div className={styles.inputGroup}>
+              <label htmlFor="role">ROLE (RBAC)</label>
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              >
+                <option value="FLEET_MANAGER">Fleet Manager</option>
+                <option value="DISPATCHER">Dispatcher</option>
+                <option value="SAFETY_OFFICER">Safety Officer</option>
+                <option value="FINANCIAL_ANALYST">Financial Analyst</option>
+              </select>
+            </div>
+          )}
+
+          {/* Remember Me & Forgot Password Row */}
+          {!isSignUp && (
+            <div className={styles.formOptions}>
+              <label className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span>Remember me</span>
+              </label>
+              <a href="#forgot" className={styles.forgotLink}>Forgot password?</a>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button type="submit" className={styles.submitBtn} disabled={isLoading}>
+            {isLoading
+              ? (isSignUp ? 'Creating Account...' : 'Signing In...')
+              : (isSignUp ? 'Create Account' : 'Sign In')}
+          </button>
         </form>
+
+        {/* Toggle Sign In / Sign Up */}
+        <div className={styles.authToggleSection}>
+          {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+          <button
+            type="button"
+            className={styles.authToggleBtn}
+            onClick={toggleAuthMode}
+          >
+            {isSignUp ? 'Sign in here' : 'Sign up here'}
+          </button>
+        </div>
+
+        {/* Access Scope Info Text */}
         <div className={styles.accessScopeInfo}>
           <p>Access is scoped by role after login:</p>
           <ul>

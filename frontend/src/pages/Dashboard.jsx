@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/Dashboard.css';
 import { Link } from 'react-router-dom';
 import ComingSoonModal from '../components/ComingSoonModal';
+import { dashboardApi, tripApi } from '../services/api';
 
 const Dashboard = () => {
     const [data, setData] = useState(null);
@@ -14,58 +15,43 @@ const Dashboard = () => {
 
     useEffect(() => {
         const fetchDashboardData = async () => {
-            const liveTrips = JSON.parse(localStorage.getItem('live_dispatched_trips') || '[]');
             try {
-                const response = await fetch('http://localhost:8080/api/dashboard');
-                if (response.ok) {
-                    const b = await response.json();
-                    setData({
-                        stats: [
-                            { title: 'ACTIVE VEHICLES', value: String((b.activeVehicles ?? 0) + liveTrips.length), color: 'primary' },
-                            { title: 'AVAILABLE VEHICLES', value: String(Math.max(0, (b.availableVehicles ?? 0) - liveTrips.length)), color: 'success' },
-                            { title: 'VEHICLES IN MAINT.', value: String(b.vehiclesInMaintenance ?? 0), color: 'warning' },
-                            { title: 'ACTIVE TRIPS', value: String((b.activeTrips ?? 0) + liveTrips.length), color: 'info' },
-                            { title: 'FLEET UTILIZATION', value: `${Math.min(100, Math.round(b.fleetUtilizationRate || 0) + liveTrips.length * 15)}%`, color: 'success' }
-                        ],
-                        recentTrips: [
-                            ...liveTrips,
-                            { trip: 'TR001', vehicle: 'KA-01-EQ-1001', driver: 'Ramesh Sharma', status: 'Completed', badge: 'bg-success', eta: '—' },
-                            { trip: 'TR002', vehicle: 'MH-12-AB-2002', driver: 'Suresh Patil', status: 'Dispatched', badge: 'bg-primary', eta: '45 min' },
-                            { trip: 'TR003', vehicle: 'TN-09-CD-4004', driver: 'Amit Verma', status: 'Draft', badge: 'bg-info', eta: 'Pending' },
-                        ],
-                        vehicleStatuses: [
-                            { label: 'Available', percent: Math.round(((b.availableVehicles || 1) / (b.totalVehicles || 1)) * 100), color: 'bg-success' },
-                            { label: 'On Trip', percent: Math.round(((b.activeVehicles || 0) / (b.totalVehicles || 1)) * 100), color: 'bg-primary' },
-                            { label: 'In Shop', percent: Math.round(((b.vehiclesInMaintenance || 0) / (b.totalVehicles || 1)) * 100), color: 'bg-warning' },
-                        ]
-                    });
-                    setIsLoading(false);
-                    return;
-                }
-            } catch (ignored) {}
-
-            setTimeout(() => {
+                const [stats, trips] = await Promise.all([
+                    dashboardApi.getKPIs(),
+                    tripApi.getAll()
+                ]);
+                
+                const activeTripsList = trips.filter(t => t.status === 'DISPATCHED' || t.status === 'IN_TRANSIT');
+                const recentTripsList = trips.sort((a,b) => b.id - a.id).slice(0, 5).map(t => ({
+                    trip: `TR-${t.id}`,
+                    vehicle: t.vehicle?.registrationNumber || `Vehicle #${t.vehicleId}`,
+                    driver: t.driver?.name || `Driver #${t.driverId}`,
+                    status: t.status === 'DISPATCHED' ? 'In Transit' : (t.status === 'COMPLETED' ? 'Completed' : t.status),
+                    badge: t.status === 'DISPATCHED' ? 'bg-primary' : (t.status === 'COMPLETED' ? 'bg-success' : 'bg-info'),
+                    eta: t.status === 'DISPATCHED' ? '45 min' : '—'
+                }));
+                
                 setData({
                     stats: [
-                        { title: 'ACTIVE VEHICLES', value: '53', color: 'primary' },
-                        { title: 'AVAILABLE VEHICLES', value: '42', color: 'success' },
-                        { title: 'VEHICLES IN MAINT.', value: '05', color: 'warning' },
-                        { title: 'ACTIVE TRIPS', value: '18', color: 'info' },
-                        { title: 'FLEET UTILIZATION', value: '81%', color: 'success' }
+                        { title: 'ACTIVE VEHICLES', value: String(stats.activeVehicles ?? 0), color: 'primary' },
+                        { title: 'AVAILABLE VEHICLES', value: String(stats.availableVehicles ?? 0), color: 'success' },
+                        { title: 'VEHICLES IN MAINT.', value: String(stats.vehiclesInMaintenance ?? 0), color: 'warning' },
+                        { title: 'ACTIVE TRIPS', value: String(stats.activeTrips ?? activeTripsList.length), color: 'info' },
+                        { title: 'FLEET UTILIZATION', value: `${Math.round(stats.fleetUtilizationRate || 0)}%`, color: 'success' }
                     ],
-                    recentTrips: [
-                        { trip: 'TR001', vehicle: 'VAN-05', driver: 'Alex', status: 'On Trip', badge: 'bg-primary', eta: '45 min' },
-                        { trip: 'TR002', vehicle: 'TRK-12', driver: 'John', status: 'Completed', badge: 'bg-success', eta: '—' },
-                        { trip: 'TR003', vehicle: 'MINI-08', driver: 'Priya', status: 'Dispatched', badge: 'bg-info', eta: '1h 10m' },
-                    ],
+                    recentTrips: recentTripsList,
                     vehicleStatuses: [
-                        { label: 'Available', percent: 70, color: 'bg-success' },
-                        { label: 'On Trip', percent: 30, color: 'bg-primary' },
-                        { label: 'In Shop', percent: 10, color: 'bg-warning' },
+                        { label: 'Available', percent: Math.round(((stats.availableVehicles || 0) / (stats.totalVehicles || 1)) * 100) || 0, color: 'bg-success' },
+                        { label: 'On Trip', percent: Math.round(((stats.activeVehicles || 0) / (stats.totalVehicles || 1)) * 100) || 0, color: 'bg-primary' },
+                        { label: 'In Shop', percent: Math.round(((stats.vehiclesInMaintenance || 0) / (stats.totalVehicles || 1)) * 100) || 0, color: 'bg-warning' },
                     ]
                 });
+            } catch (err) {
+                console.error("Dashboard fetch error:", err);
+                setError(err.message || 'Failed to load dashboard data');
+            } finally {
                 setIsLoading(false);
-            }, 500);
+            }
         };
 
         fetchDashboardData();
@@ -104,6 +90,7 @@ const Dashboard = () => {
                             if (item === 'Drivers') path = "/drivers";
                             if (item === 'Trips') path = "/trips";
                             if (item === 'Maintenance') path = "/maintenance";
+                            if (item === 'Fuel & Expenses') path = "/fuel";
 
                             const isActive = item === 'Dashboard';
                             const isComingSoon = item === 'Fuel & Expenses' || item === 'Analytics' || item === 'Settings';
