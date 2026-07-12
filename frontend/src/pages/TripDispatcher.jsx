@@ -7,7 +7,7 @@ import ComingSoonModal from '../components/ComingSoonModal';
 const TripDispatcher = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [comingSoonModule, setComingSoonModule] = useState(null);
-    const [tripStep, setTripStep] = useState(1);
+    const [tripStep, setTripStep] = useState(() => Number(localStorage.getItem('live_trip_step')) || 1);
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
 
@@ -81,6 +81,7 @@ const TripDispatcher = () => {
             localStorage.setItem(`live_dri_status_${selDri.id}`, 'On Route');
         }
         setTripStep(3);
+        localStorage.setItem('live_trip_step', '3');
 
         try {
             const res = await fetch('http://localhost:8080/api/trips', {
@@ -334,6 +335,7 @@ const TripDispatcher = () => {
                                                             localStorage.setItem(`live_dri_status_${selDri.id}`, 'Active');
                                                         }
                                                         setTripStep(4);
+                                                        localStorage.setItem('live_trip_step', '4');
                                                     }}
                                                 >
                                                     ✅ Complete Trip & Release Vehicle
@@ -346,7 +348,10 @@ const TripDispatcher = () => {
                                                 <button
                                                     type="button"
                                                     className="btn btn-outline-light btn-sm mt-2 w-100"
-                                                    onClick={() => setTripStep(1)}
+                                                    onClick={() => {
+                                                        setTripStep(1);
+                                                        localStorage.setItem('live_trip_step', '1');
+                                                    }}
                                                 >
                                                     Dispatch Another Trip
                                                 </button>
