@@ -8,6 +8,7 @@ import { dashboardApi, tripApi, vehicleApi, fuelApi, expenseApi } from '../servi
 const Analytics = () => {
     const [timeframe, setTimeframe] = useState('30days');
     const [metrics, setMetrics] = useState(null);
+    const [vehicleAnalytics, setVehicleAnalytics] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -19,47 +20,84 @@ const Analytics = () => {
             setError(null);
 
             try {
-                const [stats, trips, vehicles, fuels, expenses] = await Promise.all([
+                const [stats, trips, vehicles, fuels, expenses, vehAnalytics] = await Promise.all([
                     dashboardApi.getKPIs().catch(() => ({})),
                     tripApi.getAll().catch(() => []),
                     vehicleApi.getAll().catch(() => []),
                     fuelApi.getAll().catch(() => []),
-                    expenseApi.getAll().catch(() => [])
+                    expenseApi.getAll().catch(() => []),
+                    dashboardApi.getVehicleAnalytics().catch(() => [])
                 ]);
 
                 const tripList = Array.isArray(trips) ? trips : [];
                 const vehList = Array.isArray(vehicles) ? vehicles : [];
                 const fuelList = Array.isArray(fuels) ? fuels : [];
                 const expList = Array.isArray(expenses) ? expenses : [];
+                const vAnalyticsList = Array.isArray(vehAnalytics) ? vehAnalytics : [];
 
-                const totalDist = tripList.reduce((acc, t) => acc + (Number(t.plannedDistance) || 150), 0);
-                const totalFuelCost = fuelList.reduce((acc, f) => acc + (Number(f.cost) || 0), 0) || Number(stats.totalFuelCost || 48500);
-                const totalExpCost = expList.reduce((acc, e) => acc + (Number(e.amount) || 0), 0) || Number(stats.totalMaintenanceCost || 18200);
-                const totalVehiclesCount = vehList.length || stats.totalVehicles || 3;
+                // 1. Dynamic Total Distance
+                const totalDist = tripList.reduce((acc, t) => acc + (Number(t.plannedDistance) || 0), 0);
 
-                const completedTrips = tripList.filter(t => t.status === 'COMPLETED').length;
-                const activeTrips = tripList.filter(t => t.status === 'DISPATCHED' || t.status === 'IN_PROGRESS').length;
+                // 2. Dynamic Fuel & Operational Costs
+                const fuelCostSum = fuelList.reduce((acc, f) => acc + (Number(f.cost) || 0), 0);
+                const expenseCostSum = expList.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+                const totalFuelCost = fuelCostSum > 0 ? fuelCostSum : Number(stats.totalFuelCost || 0);
 
+                // 3. Dynamic Maintenance & Repairs
+                const maintCostSum = expList
+                    .filter(e => e.category === 'MAINTENANCE')
+                    .reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+                const totalMaintCost = maintCostSum > 0 ? maintCostSum : Number(stats.totalMaintenanceCost || 0);
+
+                // 4. Dynamic Fleet Utilization Rate
+                const totalVehiclesCount = vehList.length || stats.totalVehicles || 1;
+                const activeVehiclesCount = vehList.filter(v => v.status === 'IN_USE' || v.status === 'ON_TRIP').length || stats.activeVehicles || 0;
+                const availableVehiclesCount = vehList.filter(v => v.status === 'AVAILABLE').length || stats.availableVehicles || 0;
+                const maintenanceVehiclesCount = vehList.filter(v => v.status === 'UNDER_MAINTENANCE' || v.status === 'MAINTENANCE').length || stats.vehiclesInMaintenance || 0;
+
+                const computedUtilization = Math.round((activeVehiclesCount / totalVehiclesCount) * 100);
+                const utilizationRate = stats.fleetUtilization ? Math.round(stats.fleetUtilization) : computedUtilization;
+
+                // 5. Dynamic Daily Trip Volume Grouped by Day of Week from Real Trips
+                const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const dayCounts = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
+
+                tripList.forEach(t => {
+                    const dateStr = t.scheduledDepartureTime || t.createdAt;
+                    if (dateStr) {
+                        const dateObj = new Date(dateStr);
+                        if (!isNaN(dateObj.getTime())) {
+                            const dayName = daysOfWeek[dateObj.getDay()];
+                            dayCounts[dayName] = (dayCounts[dayName] || 0) + 1;
+                        }
+                    }
+                });
+
+                const maxTripsInDay = Math.max(...Object.values(dayCounts), 1);
+                const chartBars = daysOfWeek.map(day => ({
+                    label: day,
+                    count: dayCounts[day],
+                    percent: Math.round((dayCounts[day] / maxTripsInDay) * 100)
+                }));
+
+                // 6. Dynamic Fleet Status Breakdown
+                const getPercent = (val) => Math.round((val / totalVehiclesCount) * 100);
+
+                const costPerKm = totalDist > 0 ? ((totalFuelCost + totalMaintCost + expenseCostSum) / totalDist).toFixed(2) : '0.00';
+
+                setVehicleAnalytics(vAnalyticsList);
                 setMetrics({
                     totalDistance: `${totalDist.toLocaleString()} km`,
-                    totalFuel: `₹${totalFuelCost.toLocaleString('en-IN')}`,
-                    maintCost: `₹${totalExpCost.toLocaleString('en-IN')}`,
-                    utilization: `${Math.round(stats.fleetUtilization || 85)}%`,
-                    chartData: [
-                        { label: 'Mon', value: 42, cost: 12000 },
-                        { label: 'Tue', value: 68, cost: 18500 },
-                        { label: 'Wed', value: 85, cost: 24000 },
-                        { label: 'Thu', value: 92, cost: 29500 },
-                        { label: 'Fri', value: 100, cost: 34000 },
-                        { label: 'Sat', value: 78, cost: 21000 },
-                        { label: 'Sun', value: 55, cost: 15000 }
-                    ],
+                    totalFuel: `₹${(totalFuelCost + expenseCostSum).toLocaleString('en-IN')}`,
+                    maintCost: `₹${totalMaintCost.toLocaleString('en-IN')}`,
+                    utilization: `${utilizationRate}%`,
+                    chartData: chartBars,
                     fleetStatus: [
-                        { label: 'Available Ready', percent: Math.round(((stats.availableVehicles || 2) / totalVehiclesCount) * 100), count: stats.availableVehicles || 2, color: 'bg-success' },
-                        { label: 'Active Dispatched', percent: Math.round(((stats.activeVehicles || 1) / totalVehiclesCount) * 100), count: stats.activeVehicles || 1, color: 'bg-info' },
-                        { label: 'In Shop Maintenance', percent: Math.round(((stats.vehiclesInMaintenance || 0) / totalVehiclesCount) * 100), count: stats.vehiclesInMaintenance || 0, color: 'bg-warning' }
+                        { label: 'Available Ready', percent: getPercent(availableVehiclesCount), count: availableVehiclesCount, color: 'bg-success' },
+                        { label: 'Active Dispatched', percent: getPercent(activeVehiclesCount), count: activeVehiclesCount, color: 'bg-info' },
+                        { label: 'In Shop Maintenance', percent: getPercent(maintenanceVehiclesCount), count: maintenanceVehiclesCount, color: 'bg-warning' }
                     ],
-                    insight: `Fleet efficiency is running at ${Math.round(stats.fleetUtilization || 85)}% with ${tripList.length} total recorded trips across ${totalVehiclesCount} vehicles.`
+                    insight: `Analytics dynamically calculated from ${tripList.length} real trips across ${totalVehiclesCount} vehicles. Operating cost averages ₹${costPerKm}/km with ${utilizationRate}% fleet utilization.`
                 });
             } catch (err) {
                 console.error("Failed to fetch analytics data:", err);
@@ -89,7 +127,7 @@ const Analytics = () => {
         return (
             <div className="min-vh-100 analytics-bg d-flex justify-content-center align-items-center text-light">
                 <div className="spinner-border text-info me-2" role="status"></div>
-                <span>Loading reports & visual analytics...</span>
+                <span>Loading live analytics computed from database...</span>
             </div>
         );
     }
@@ -152,6 +190,7 @@ const Analytics = () => {
                         </div>
                     </div>
 
+                    {/* KPI Cards */}
                     <div className="row mb-5 g-3">
                         <div className="col-md-3">
                             <div className="card bg-dark border-secondary border-start border-3 border-info h-100 shadow">
@@ -187,12 +226,16 @@ const Analytics = () => {
                         </div>
                     </div>
 
-                    <div className="row g-4">
+                    {/* Chart and Status Row */}
+                    <div className="row g-4 mb-5">
                         <div className="col-md-7">
                             <div className="card bg-dark border-secondary p-4 h-100 shadow">
-                                <h6 className="text-uppercase text-light fw-bold mb-4" style={{ letterSpacing: '1px' }}>
-                                    Daily Trip Volume & Dispatch Trend
-                                </h6>
+                                <div className="d-flex justify-content-between align-items-center mb-4">
+                                    <h6 className="text-uppercase text-light fw-bold mb-0" style={{ letterSpacing: '1px' }}>
+                                        Real-Time Trips Dispatched by Day of Week
+                                    </h6>
+                                    <span className="badge bg-info text-dark fw-bold">Live DB Aggregation</span>
+                                </div>
 
                                 {/* SVG BAR CHART */}
                                 <div className="chart-container pt-3" style={{ height: '240px' }}>
@@ -204,7 +247,7 @@ const Analytics = () => {
                                         <line x1="0" y1="180" x2="500" y2="180" stroke="#555" />
 
                                         {metrics.chartData.map((d, idx) => {
-                                            const barHeight = (d.value / 100) * 140;
+                                            const barHeight = Math.max((d.percent / 100) * 140, 6);
                                             const yPos = 180 - barHeight;
                                             const xPos = idx * 68 + 25;
                                             return (
@@ -225,7 +268,7 @@ const Analytics = () => {
                                                         fontWeight="bold"
                                                         textAnchor="middle"
                                                     >
-                                                        {d.value}%
+                                                        {d.count} trip{d.count !== 1 ? 's' : ''}
                                                     </text>
                                                     <text
                                                         x={xPos + 20}
@@ -275,7 +318,7 @@ const Analytics = () => {
                                     <div className="d-flex align-items-center gap-3">
                                         <div className="fs-3">💡</div>
                                         <div>
-                                            <h6 className="mb-1 text-light fw-bold">AI Fleet Insight</h6>
+                                            <h6 className="mb-1 text-light fw-bold">AI Fleet Insight (Calculated Live)</h6>
                                             <p className="text-light small mb-0">{metrics.insight}</p>
                                         </div>
                                     </div>
@@ -283,6 +326,43 @@ const Analytics = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Vehicle-level Analytics Table */}
+                    {vehicleAnalytics.length > 0 && (
+                        <div className="card bg-dark border-secondary p-4 shadow">
+                            <h6 className="text-uppercase text-light fw-bold mb-3" style={{ letterSpacing: '1px' }}>
+                                Vehicle-Level Operating Cost & Efficiency Report
+                            </h6>
+                            <div className="table-responsive">
+                                <table className="table table-dark table-hover table-borderless align-middle mb-0">
+                                    <thead className="border-bottom border-secondary text-light">
+                                        <tr style={{ fontSize: '11px', letterSpacing: '1px' }}>
+                                            <th className="text-uppercase fw-semibold pb-3">VEHICLE REG</th>
+                                            <th className="text-uppercase fw-semibold pb-3">MODEL / TYPE</th>
+                                            <th className="text-uppercase fw-semibold pb-3">TRIPS</th>
+                                            <th className="text-uppercase fw-semibold pb-3">DISTANCE</th>
+                                            <th className="text-uppercase fw-semibold pb-3">FUEL COST</th>
+                                            <th className="text-uppercase fw-semibold pb-3">MAINT COST</th>
+                                            <th className="text-uppercase fw-semibold pb-3 text-end">TOTAL OPERATIONAL COST</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {vehicleAnalytics.map((va, i) => (
+                                            <tr key={i}>
+                                                <td className="fw-bold text-white">{va.registrationNumber}</td>
+                                                <td className="text-light">{va.model} ({va.type})</td>
+                                                <td className="text-light">{va.completedTrips || 0}</td>
+                                                <td className="text-info">{va.totalDistance || 0} km</td>
+                                                <td className="text-success">₹{Number(va.totalFuelCost || 0).toLocaleString('en-IN')}</td>
+                                                <td className="text-warning">₹{Number(va.totalMaintenanceCost || 0).toLocaleString('en-IN')}</td>
+                                                <td className="text-end fw-bold text-white">₹{Number(va.totalOperationalCost || 0).toLocaleString('en-IN')}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
 
                 </div>
             </div>
