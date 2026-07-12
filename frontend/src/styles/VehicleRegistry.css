@@ -1,0 +1,83 @@
+.registry-bg {
+  background-color: #121212;
+}
+
+.sidebar-dark {
+  background-color: #1a1a1a;
+  min-height: 100vh;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #121212;
+}
+
+.active-nav-item {
+  border: 1px solid #f39c12;
+  border-radius: 6px;
+  color: #fff !important;
+  background-color: rgba(243, 156, 18, 0.1);
+}
+
+.hover-nav {
+  transition: all 0.2s ease-in-out;
+}
+
+.hover-nav:hover {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+/* Avatar */
+.rounded-avatar {
+  width: 40px;
+  height: 40px;
+  font-weight: 600;
+  border: 1px solid #6699ff; 
+  color: #6699ff;
+  background-color: rgba(102, 153, 255, 0.1) !important;
+}
+
+.form-control:focus, .form-select:focus {
+  background-color: transparent;
+  color: #fff;
+  border-color: #f39c12;
+  box-shadow: none;
+}
+
+.form-select option {
+  background-color: #1a1a1a;
+  color: #fff;
+}
+
+.btn-warning {
+  background-color: #d87d14; 
+  border-color: #d87d14;
+  color: #fff;
+}
+
+.btn-warning:hover {
+  background-color: #e68a19;
+  border-color: #e68a19;
+  color: #fff;
+}
+
+.table-dark {
+  --bs-table-bg: transparent;
+}
+
+.table-hover > tbody > tr:hover > * {
+  --bs-table-accent-bg: rgba(255, 255, 255, 0.03);
+  color: #fff;
+}
+
+.table td {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.badge {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
