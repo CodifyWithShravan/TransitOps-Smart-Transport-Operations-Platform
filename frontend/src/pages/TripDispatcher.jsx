@@ -7,9 +7,9 @@ import ComingSoonModal from '../components/ComingSoonModal';
 const TripDispatcher = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [comingSoonModule, setComingSoonModule] = useState(null);
-    const [tripStep, setTripStep] = useState(() => Number(localStorage.getItem('live_trip_step')) || 1);
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
+    const [activeTrips, setActiveTrips] = useState(() => JSON.parse(localStorage.getItem('active_trips_list') || '[]'));
 
     const [formData, setFormData] = useState({
         vehicleId: '',
@@ -81,26 +81,41 @@ const TripDispatcher = () => {
     const handleDispatch = async () => {
         const selVeh = vehicles.find(v => v.id === formData.vehicleId);
         const selDri = drivers.find(d => d.id === formData.driverId);
+        const tripId = `TR${Math.floor(100 + Math.random() * 900)}`;
+
         const tripObj = {
-            trip: `TR${Math.floor(100 + Math.random()*900)}`,
+            id: tripId,
             vehicle: selVeh ? (selVeh.reg || selVeh.make) : 'VAN-05',
+            vehicleId: formData.vehicleId,
+            vehicleMake: selVeh ? selVeh.make : '',
             driver: selDri ? selDri.name : 'Alex Mercer',
-            status: 'Dispatched',
-            badge: 'bg-primary',
-            eta: '45 min'
+            driverId: formData.driverId,
+            origin: formData.origin || 'Warehouse A',
+            destination: formData.destination || 'Hub B',
+            cargo: formData.cargoWeight || '0',
+            status: 'In Transit',
+            dispatchedAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
         };
 
-        // Save global live dispatch so Dashboard & Fleet pages update instantly
-        const existingTrips = JSON.parse(localStorage.getItem('live_dispatched_trips') || '[]');
-        localStorage.setItem('live_dispatched_trips', JSON.stringify([tripObj, ...existingTrips]));
+        // Mark vehicle & driver as busy
         if (selVeh) {
             localStorage.setItem(`live_veh_status_${selVeh.reg || selVeh.id}`, 'On Trip');
         }
         if (selDri) {
             localStorage.setItem(`live_dri_status_${selDri.id}`, 'On Route');
         }
-        setTripStep(3);
-        localStorage.setItem('live_trip_step', '3');
+
+        // Save to dashboard's live trips
+        const existingTrips = JSON.parse(localStorage.getItem('live_dispatched_trips') || '[]');
+        localStorage.setItem('live_dispatched_trips', JSON.stringify([{
+            trip: tripId, vehicle: tripObj.vehicle, driver: tripObj.driver,
+            status: 'Dispatched', badge: 'bg-primary', eta: '45 min'
+        }, ...existingTrips]));
+
+        // Add to active trips list
+        const updatedTrips = [tripObj, ...activeTrips];
+        setActiveTrips(updatedTrips);
+        localStorage.setItem('active_trips_list', JSON.stringify(updatedTrips));
 
         try {
             const res = await fetch('http://localhost:8080/api/trips', {
@@ -119,15 +134,32 @@ const TripDispatcher = () => {
                 if (newTrip.id) {
                     await fetch(`http://localhost:8080/api/trips/${newTrip.id}/dispatch`, { method: 'POST' });
                 }
-                setDispatchMessage(`✅ Successfully Dispatched Trip #${newTrip.id || tripObj.trip} (${formData.origin} → ${formData.destination})! Vehicle & Dashboard Updated.`);
-            } else {
-                setDispatchMessage(`✅ Successfully Dispatched Trip (${formData.origin} → ${formData.destination})! Vehicle & Dashboard Updated.`);
             }
-        } catch (ignored) {
-            setDispatchMessage(`✅ Successfully Dispatched Trip (${formData.origin} → ${formData.destination})! Vehicle & Dashboard Updated.`);
-        }
+        } catch (ignored) {}
+
+        setDispatchMessage(`✅ Trip ${tripId} dispatched! (${tripObj.origin} → ${tripObj.destination})`);
         setFormData({ vehicleId: '', driverId: '', origin: '', destination: '', cargoWeight: '', status: 'Draft' });
-        setTimeout(() => setDispatchMessage(null), 6000);
+        setTimeout(() => setDispatchMessage(null), 4000);
+    };
+
+    const handleCompleteTrip = (tripId) => {
+        const trip = activeTrips.find(t => t.id === tripId);
+        if (!trip) return;
+
+        // Release vehicle
+        if (trip.vehicle) {
+            localStorage.setItem(`live_veh_status_${trip.vehicle}`, 'Available');
+        }
+        // Release driver
+        if (trip.driverId) {
+            localStorage.setItem(`live_dri_status_${trip.driverId}`, 'Active');
+        }
+
+        const updatedTrips = activeTrips.map(t =>
+            t.id === tripId ? { ...t, status: 'Completed' } : t
+        );
+        setActiveTrips(updatedTrips);
+        localStorage.setItem('active_trips_list', JSON.stringify(updatedTrips));
     };
 
     const handleInputChange = (e) => {
@@ -139,6 +171,9 @@ const TripDispatcher = () => {
     const currentWeight = parseInt(formData.cargoWeight) || 0;
     const isOverCapacity = selectedVehicle && currentWeight > selectedVehicle.capacity;
     const capacityDeficit = isOverCapacity ? currentWeight - selectedVehicle.capacity : 0;
+
+    const inTransitCount = activeTrips.filter(t => t.status === 'In Transit').length;
+    const completedCount = activeTrips.filter(t => t.status === 'Completed').length;
 
     if (isLoading) {
         return (
@@ -163,8 +198,6 @@ const TripDispatcher = () => {
                             if (item === 'Drivers') path = "/drivers";
                             if (item === 'Trips') path = "/trips";
                             if (item === 'Maintenance') path = "/maintenance";
-                            if (item === 'Fuel & Expenses') path = "/fuel";
-
 
                             const isActive = item === 'Trips';
                             const isComingSoon = item === 'Fuel & Expenses' || item === 'Analytics' || item === 'Settings';
@@ -195,9 +228,9 @@ const TripDispatcher = () => {
                     {/* Header */}
                     <div className="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
                         <h5 className="mb-0 text-white">Trip Dispatcher</h5>
-                        <div className="d-flex align-items-center">
-                            <span className="me-3 text-secondary text-sm text-end">Raven K. <br /><small className="text-muted">Dispatcher</small></span>
-                            <div className="rounded-circle bg-secondary text-center rounded-avatar d-flex justify-content-center align-items-center">RK</div>
+                        <div className="d-flex align-items-center gap-3">
+                            <span className="badge bg-info text-dark px-3 py-2 fw-bold">{inTransitCount} In Transit</span>
+                            <span className="badge bg-success px-3 py-2 fw-bold">{completedCount} Completed</span>
                         </div>
                     </div>
 
@@ -215,7 +248,7 @@ const TripDispatcher = () => {
                                             const isAvail = liveStatus === 'Available';
                                             return (
                                                 <option key={v.id} value={v.id} disabled={!isAvail}>
-                                                    {v.make} ({v.capacity}kg) - {v.reg} {isAvail ? '✅ [Available]' : `🚫 [${liveStatus.toUpperCase()}]`}
+                                                    {v.make} ({v.capacity}kg) - {v.reg} {isAvail ? '✅' : `🚫 [${liveStatus.toUpperCase()}]`}
                                                 </option>
                                             );
                                         })}
@@ -231,7 +264,7 @@ const TripDispatcher = () => {
                                             const isAvail = liveStatus === 'Active' || liveStatus === 'Available';
                                             return (
                                                 <option key={d.id} value={d.id} disabled={!isAvail}>
-                                                    {d.name} {isAvail ? '✅ [Available]' : `🚫 [${liveStatus.toUpperCase()}]`}
+                                                    {d.name} {isAvail ? '✅' : `🚫 [${liveStatus.toUpperCase()}]`}
                                                 </option>
                                             );
                                         })}
@@ -264,12 +297,9 @@ const TripDispatcher = () => {
                                     </div>
                                 )}
 
-                                <div className="d-flex gap-3 mt-5">
-                                    <button type="button" className="btn btn-outline-secondary px-4 rounded-pill w-50">Save Draft</button>
-                                    <button type="button" className="btn btn-primary px-4 rounded-pill w-50 fw-bold" onClick={handleDispatch} disabled={isOverCapacity || !formData.vehicleId || !formData.driverId}>
-                                        Dispatch Trip
-                                    </button>
-                                </div>
+                                <button type="button" className="btn btn-primary px-4 rounded-pill w-100 fw-bold py-2" onClick={handleDispatch} disabled={isOverCapacity || !formData.vehicleId || !formData.driverId}>
+                                    🚀 Dispatch Trip
+                                </button>
                                 {dispatchMessage && (
                                     <div className="alert alert-success mt-3 rounded-3 py-2 px-3 small fw-bold">
                                         {dispatchMessage}
@@ -278,110 +308,62 @@ const TripDispatcher = () => {
                             </form>
                         </div>
 
-                        <div className="col-md-7 ps-md-5">
-                            <div className="d-flex justify-content-between align-items-center mb-5">
-                                <h6 className="text-uppercase text-muted mb-0" style={{ letterSpacing: '1px' }}>Trip Status</h6>
-                                <span className="badge bg-secondary px-3 py-2 rounded-pill">TR005 (Auto-generated)</span>
-                            </div>
+                        <div className="col-md-7 ps-md-4">
+                            <h6 className="text-uppercase text-muted mb-3" style={{ letterSpacing: '1px' }}>Live Dispatched Trips</h6>
 
-                            <div className="stepper-wrapper mb-4 d-flex justify-content-between position-relative">
-                                <div className="stepper-line position-absolute top-50 start-0 w-100 translate-middle-y"></div>
-
-                                <div className={`stepper-item ${tripStep >= 1 ? 'active' : ''} text-center position-relative`}>
-                                    <div className={`step-circle ${tripStep >= 1 ? 'bg-primary text-white' : 'bg-dark border border-secondary text-secondary'} mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle`}>1</div>
-                                    <small className={tripStep >= 1 ? 'text-primary fw-bold' : 'text-secondary'}>Draft</small>
+                            {activeTrips.length === 0 ? (
+                                <div className="text-center py-5 text-muted">
+                                    <div style={{ fontSize: '3rem' }}>🚛</div>
+                                    <p className="mt-2">No trips dispatched yet. Create a trip on the left to get started.</p>
                                 </div>
-                                <div className={`stepper-item ${tripStep >= 2 ? 'active' : ''} text-center position-relative`}>
-                                    <div className={`step-circle ${tripStep >= 2 ? 'bg-primary text-white' : 'bg-dark border border-secondary text-secondary'} mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle`}>2</div>
-                                    <small className={tripStep >= 2 ? 'text-primary fw-bold' : 'text-secondary'}>Dispatched</small>
+                            ) : (
+                                <div className="table-responsive" style={{ maxHeight: '65vh', overflowY: 'auto' }}>
+                                    <table className="table table-dark table-hover table-borderless align-middle">
+                                        <thead className="border-bottom border-secondary text-muted position-sticky top-0 bg-dark" style={{ zIndex: 1 }}>
+                                            <tr style={{ fontSize: '11px', letterSpacing: '1px' }}>
+                                                <th className="text-uppercase fw-normal pb-3">TRIP</th>
+                                                <th className="text-uppercase fw-normal pb-3">ROUTE</th>
+                                                <th className="text-uppercase fw-normal pb-3">VEHICLE</th>
+                                                <th className="text-uppercase fw-normal pb-3">DRIVER</th>
+                                                <th className="text-uppercase fw-normal pb-3">STATUS</th>
+                                                <th className="text-uppercase fw-normal pb-3 text-end">ACTION</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {activeTrips.map((trip, idx) => (
+                                                <tr key={idx}>
+                                                    <td className="fw-bold text-info">{trip.id}</td>
+                                                    <td>
+                                                        <small className="text-light">{trip.origin}</small>
+                                                        <span className="text-primary mx-1">→</span>
+                                                        <small className="text-light">{trip.destination}</small>
+                                                    </td>
+                                                    <td><span className="badge bg-secondary">{trip.vehicle}</span></td>
+                                                    <td className="text-light small">{trip.driver}</td>
+                                                    <td>
+                                                        <span className={`badge ${trip.status === 'In Transit' ? 'bg-info text-dark' : 'bg-success'} px-2 py-1 rounded-pill fw-bold`} style={{ fontSize: '11px' }}>
+                                                            {trip.status === 'In Transit' ? '🚚 In Transit' : '✅ Done'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="text-end">
+                                                        {trip.status === 'In Transit' ? (
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-sm btn-outline-success fw-bold"
+                                                                onClick={() => handleCompleteTrip(trip.id)}
+                                                            >
+                                                                Complete & Release
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-muted small">Released</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <div className={`stepper-item ${tripStep >= 3 ? 'active' : ''} text-center position-relative`}>
-                                    <div className={`step-circle ${tripStep >= 3 ? 'bg-info text-dark fw-bold' : 'bg-dark border border-secondary text-secondary'} mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle`}>3</div>
-                                    <small className={tripStep >= 3 ? 'text-info fw-bold' : 'text-secondary'}>In Transit</small>
-                                </div>
-                                <div className={`stepper-item ${tripStep >= 4 ? 'active' : ''} text-center position-relative`}>
-                                    <div className={`step-circle ${tripStep >= 4 ? 'bg-success text-white fw-bold' : 'bg-dark border border-secondary text-secondary'} mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle`}>4</div>
-                                    <small className={tripStep >= 4 ? 'text-success fw-bold' : 'text-secondary'}>Completed</small>
-                                </div>
-                            </div>
-
-                            <div className="card bg-dark border-secondary rounded-3">
-                                <div className="card-header border-secondary bg-transparent py-3">
-                                    <h6 className="mb-0 text-light">Live Dispatch Summary</h6>
-                                </div>
-                                <div className="card-body">
-                                    <div className="row mb-3 border-bottom border-secondary pb-3">
-                                        <div className="col-4 text-muted small">Route:</div>
-                                        <div className="col-8 text-light fw-semibold">
-                                            {formData.origin || '—'} <span className="text-primary mx-2">→</span> {formData.destination || '—'}
-                                        </div>
-                                    </div>
-                                    <div className="row mb-3 border-bottom border-secondary pb-3">
-                                        <div className="col-4 text-muted small">Assigned To:</div>
-                                        <div className="col-8 text-light">
-                                            {drivers.find(d => d.id === formData.driverId)?.name || 'Pending Driver Selection'}
-                                        </div>
-                                    </div>
-
-                                    <div className="row mb-3 border-bottom border-secondary pb-3">
-                                        <div className="col-4 text-muted small">Asset:</div>
-                                        <div className="col-8 text-light d-flex align-items-center gap-2">
-                                            {selectedVehicle ? (
-                                                <>{selectedVehicle.make} <span className="badge bg-secondary ms-2">{selectedVehicle.reg}</span></>
-                                            ) : 'Pending Vehicle Selection'}
-                                        </div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-4 text-muted small">Payload:</div>
-                                        <div className={`col-8 fw-bold ${isOverCapacity ? 'text-danger' : 'text-success'}`}>
-                                            {formData.cargoWeight ? `${formData.cargoWeight} kg` : '0 kg'}
-                                            {selectedVehicle && ` / ${selectedVehicle.capacity} kg limit`}
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-3">
-                                        {tripStep === 3 ? (
-                                            <div className="p-3 bg-dark border border-info rounded-3 text-center">
-                                                <div className="text-info fw-bold mb-2">🚚 Trip Currently In Transit</div>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-success btn-sm fw-bold w-100 py-2"
-                                                    onClick={() => {
-                                                        const selVeh = vehicles.find(v => v.id === formData.vehicleId);
-                                                        const selDri = drivers.find(d => d.id === formData.driverId);
-                                                        if (selVeh) {
-                                                            localStorage.setItem(`live_veh_status_${selVeh.reg || selVeh.id}`, 'Available');
-                                                        }
-                                                        if (selDri) {
-                                                            localStorage.setItem(`live_dri_status_${selDri.id}`, 'Active');
-                                                        }
-                                                        setTripStep(4);
-                                                        localStorage.setItem('live_trip_step', '4');
-                                                    }}
-                                                >
-                                                    ✅ Complete Trip & Release Vehicle
-                                                </button>
-                                            </div>
-                                        ) : tripStep === 4 ? (
-                                            <div className="p-3 bg-success bg-opacity-25 border border-success rounded-3 text-center">
-                                                <div className="text-success fw-bold">🎉 Trip Completed Successfully</div>
-                                                <small className="text-light">Vehicle & Driver released to Available.</small>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-outline-light btn-sm mt-2 w-100"
-                                                    onClick={() => {
-                                                        setTripStep(1);
-                                                        localStorage.setItem('live_trip_step', '1');
-                                                    }}
-                                                >
-                                                    Dispatch Another Trip
-                                                </button>
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                </div>
-                            </div>
-
+                            )}
                         </div>
                     </div>
 
