@@ -14,15 +14,39 @@ const VehicleRegistry = () => {
     const navItems = ['Dashboard', 'Fleet', 'Drivers', 'Trips', 'Maintenance', 'Fuel & Expenses', 'Analytics', 'Settings'];
 
     useEffect(() => {
-        setTimeout(() => {
-            setVehicles([
-                { regNo: 'GJ01AB452', makeModel: 'VAN-05', type: 'Van', capacity: '500 kg', odometer: '74,000', cost: '6,20,000', status: 'Available', badge: 'bg-success' },
-                { regNo: 'GJ01AB998', makeModel: 'TRUCK-11', type: 'Truck', capacity: '5 Ton', odometer: '182,000', cost: '24,50,000', status: 'On Trip', badge: 'bg-primary' },
-                { regNo: 'GJ01AB1120', makeModel: 'MINI-03', type: 'Mini', capacity: '1 Ton', odometer: '66,000', cost: '4,10,000', status: 'In Shop', badge: 'bg-warning text-dark' },
-                { regNo: 'GJ01AB009', makeModel: 'VAN-09', type: 'Van', capacity: '750 kg', odometer: '241,900', cost: '5,90,000', status: 'Retired', badge: 'bg-danger' },
-            ]);
-            setIsLoading(false);
-        }, 500);
+        const fetchVehicles = async () => {
+            try {
+                const response = await fetch('http://localhost:8080/api/vehicles');
+                if (response.ok) {
+                    const data = await response.json();
+                    const mapped = data.map(v => ({
+                        regNo: v.registrationNumber || 'N/A',
+                        makeModel: v.model || 'Unknown',
+                        type: v.type || 'Truck',
+                        capacity: `${v.maxLoadCapacity || 0} kg`,
+                        odometer: `${v.odometer || 0} km`,
+                        cost: `₹${v.acquisitionCost || 0}`,
+                        status: v.status === 'ON_TRIP' ? 'On Trip' : (v.status === 'IN_SHOP' ? 'In Shop' : (v.status === 'RETIRED' ? 'Retired' : 'Available')),
+                        badge: v.status === 'ON_TRIP' ? 'bg-primary' : (v.status === 'IN_SHOP' ? 'bg-warning text-dark' : (v.status === 'RETIRED' ? 'bg-danger' : 'bg-success'))
+                    }));
+                    setVehicles(mapped);
+                    setIsLoading(false);
+                    return;
+                }
+            } catch (ignored) {}
+
+            setTimeout(() => {
+                setVehicles([
+                    { regNo: 'GJ01AB452', makeModel: 'VAN-05', type: 'Van', capacity: '500 kg', odometer: '74,000', cost: '6,20,000', status: 'Available', badge: 'bg-success' },
+                    { regNo: 'GJ01AB998', makeModel: 'TRUCK-11', type: 'Truck', capacity: '5 Ton', odometer: '182,000', cost: '24,50,000', status: 'On Trip', badge: 'bg-primary' },
+                    { regNo: 'GJ01AB1120', makeModel: 'MINI-03', type: 'Mini', capacity: '1 Ton', odometer: '66,000', cost: '4,10,000', status: 'In Shop', badge: 'bg-warning text-dark' },
+                    { regNo: 'GJ01AB009', makeModel: 'VAN-09', type: 'Van', capacity: '750 kg', odometer: '241,900', cost: '5,90,000', status: 'Retired', badge: 'bg-danger' },
+                ]);
+                setIsLoading(false);
+            }, 500);
+        };
+
+        fetchVehicles();
     }, []);
 
     const filteredVehicles = vehicles.filter(vehicle => {

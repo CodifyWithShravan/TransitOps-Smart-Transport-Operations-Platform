@@ -13,16 +13,38 @@ const Drivers = () => {
     const navItems = ['Dashboard', 'Fleet', 'Drivers', 'Trips', 'Maintenance', 'Fuel & Expenses', 'Analytics', 'Settings'];
 
     useEffect(() => {
+        const fetchDrivers = async () => {
+            try {
+                const response = await fetch('http://localhost:8080/api/drivers');
+                if (response.ok) {
+                    const data = await response.json();
+                    const mapped = data.map(d => ({
+                        id: `D00${d.id || 1}`,
+                        name: d.name || 'Unknown',
+                        license: d.licenseNumber || 'DL-N/A',
+                        expiry: d.licenseExpiryDate || 'N/A',
+                        incidents: d.safetyScore < 90 ? 2 : (d.safetyScore < 95 ? 1 : 0),
+                        status: d.status === 'ON_TRIP' ? 'On Trip' : (d.status === 'SUSPENDED' ? 'Suspended' : 'Active'),
+                        badge: d.status === 'ON_TRIP' ? 'bg-primary' : (d.status === 'SUSPENDED' ? 'bg-danger' : 'bg-success')
+                    }));
+                    setDrivers(mapped);
+                    setIsLoading(false);
+                    return;
+                }
+            } catch (ignored) {}
 
-        setTimeout(() => {
-            setDrivers([
-                { id: 'D001', name: 'Alex Mercer', license: 'DL-99382', expiry: '2027-05-12', incidents: 0, status: 'Active', badge: 'bg-success' },
-                { id: 'D002', name: 'Priya Sharma', license: 'DL-44102', expiry: '2024-11-03', incidents: 1, status: 'Active', badge: 'bg-success' },
-                { id: 'D003', name: 'John Doe', license: 'DL-11094', expiry: '2025-01-20', incidents: 3, status: 'Suspended', badge: 'bg-danger' },
-                { id: 'D004', name: 'Sarah Connor', license: 'DL-88210', expiry: '2026-08-15', incidents: 0, status: 'On Leave', badge: 'bg-secondary' },
-            ]);
-            setIsLoading(false);
-        }, 500);
+            setTimeout(() => {
+                setDrivers([
+                    { id: 'D001', name: 'Alex Mercer', license: 'DL-99382', expiry: '2027-05-12', incidents: 0, status: 'Active', badge: 'bg-success' },
+                    { id: 'D002', name: 'Priya Sharma', license: 'DL-44102', expiry: '2024-11-03', incidents: 1, status: 'Active', badge: 'bg-success' },
+                    { id: 'D003', name: 'John Doe', license: 'DL-11094', expiry: '2025-01-20', incidents: 3, status: 'Suspended', badge: 'bg-danger' },
+                    { id: 'D004', name: 'Sarah Connor', license: 'DL-88210', expiry: '2026-08-15', incidents: 0, status: 'On Leave', badge: 'bg-secondary' },
+                ]);
+                setIsLoading(false);
+            }, 500);
+        };
+
+        fetchDrivers();
     }, []);
 
     const filteredDrivers = drivers.filter(driver => {
