@@ -114,7 +114,7 @@ Step 9: Reports update operational cost and fuel efficiency.
 ## 7. Mandatory Deliverables
 
 - [x] Responsive web interface (frontend)
-- [ ] Authentication with RBAC
+- [x] Authentication with RBAC
 - [x] CRUD for Vehicles and Drivers
 - [x] Trip Management with validations
 - [x] Automatic status transitions
@@ -140,7 +140,8 @@ Step 9: Reports update operational cost and fuel efficiency.
 ```
 com.example.Transit_Backend
 ├── model/
-│   ├── enums/          # VehicleStatus, DriverStatus, TripStatus, MaintenanceStatus, ExpenseCategory
+│   ├── enums/          # VehicleStatus, DriverStatus, TripStatus, MaintenanceStatus, ExpenseCategory, Role
+│   ├── User.java       # UserDetails implementation for authentication
 │   ├── Vehicle.java
 │   ├── Driver.java
 │   ├── Trip.java
@@ -149,12 +150,12 @@ com.example.Transit_Backend
 │   └── Expense.java
 ├── repository/         # Spring Data JPA interfaces + JPQL aggregates
 ├── dto/
-│   ├── request/        # Request DTOs with jakarta.validation
-│   └── response/       # Response DTOs with flattened relationships
+│   ├── request/        # Request DTOs with jakarta.validation (RegisterRequest, LoginRequest, etc.)
+│   └── response/       # Response DTOs (AuthResponse, UserResponse, etc.)
 ├── exception/          # Custom exceptions + Global handler
-├── service/            # Business logic + state transitions
-├── controller/         # REST API endpoints
-└── security/           # SecurityConfig (permitAll for now)
+├── service/            # Business logic, state transitions, AuthService, UserService
+├── controller/         # REST API endpoints (/api/auth, /api/users, etc.)
+└── security/           # SecurityConfig, JwtService, JwtAuthenticationFilter
 ```
 
 ---
@@ -188,9 +189,12 @@ com.example.Transit_Backend
 - Fleet utilization, fuel efficiency, operational costs, and vehicle ROI metrics
 - CSV exports for vehicles, drivers, trips, and vehicle analytics (`/api/dashboard/export/*`)
 
-### Step 6 — Auth & RBAC
-- User/Role entities, JWT authentication
-- Role-based endpoint protection
+### Step 6 — Auth & RBAC ✅
+- `Role` enum (`FLEET_MANAGER`, `DISPATCHER`, `SAFETY_OFFICER`, `FINANCIAL_ANALYST`, `ADMIN`)
+- `User` entity implementing Spring Security `UserDetails`
+- Stateless JWT authentication (`JwtService`, `JwtAuthenticationFilter`) with HMAC SHA-256 signing
+- BCrypt password encoding & `DaoAuthenticationProvider`
+- Public endpoints (`POST /api/auth/register`, `POST /api/auth/login`) + Role-protected endpoints (`GET /api/users/me`, `GET /api/users`)
 
 ---
 
