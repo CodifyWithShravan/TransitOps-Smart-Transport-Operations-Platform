@@ -100,3 +100,16 @@ export const maintenanceApi = {
   create: (maintenanceData) => apiClient.post('/maintenance', maintenanceData),
   complete: (id, completionData) => apiClient.post(`/maintenance/${id}/complete`, completionData),
 };
+
+// ==========================================
+// FUEL & EXPENSE APIs
+// ==========================================
+export const fuelApi = {
+  getAll: () => apiClient.get('/fuel-logs'),
+  create: (data) => apiClient.post('/fuel-logs', data),
+};
+
+export const expenseApi = {
+  getAll: () => apiClient.get('/expenses'),
+  create: (data) => apiClient.post('/expenses', data),
+};
