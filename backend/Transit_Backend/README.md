@@ -118,8 +118,8 @@ Step 9: Reports update operational cost and fuel efficiency.
 - [x] CRUD for Vehicles and Drivers
 - [x] Trip Management with validations
 - [x] Automatic status transitions
-- [ ] Maintenance workflow
-- [ ] Fuel & Expense tracking
+- [x] Maintenance workflow
+- [x] Fuel & Expense tracking
 - [ ] Dashboard with KPIs
 
 ---
@@ -140,12 +140,17 @@ Step 9: Reports update operational cost and fuel efficiency.
 ```
 com.example.Transit_Backend
 ├── model/
-│   ├── enums/          # VehicleStatus, DriverStatus, TripStatus
-│   ├── Vehicle.java    # JPA Entity
-│   ├── Driver.java     # JPA Entity
-│   └── Trip.java       # JPA Entity
-├── repository/         # Spring Data JPA interfaces
-├── dto/                # Request/Response DTOs with jakarta.validation
+│   ├── enums/          # VehicleStatus, DriverStatus, TripStatus, MaintenanceStatus, ExpenseCategory
+│   ├── Vehicle.java
+│   ├── Driver.java
+│   ├── Trip.java
+│   ├── MaintenanceLog.java
+│   ├── FuelLog.java
+│   └── Expense.java
+├── repository/         # Spring Data JPA interfaces + JPQL aggregates
+├── dto/
+│   ├── request/        # Request DTOs with jakarta.validation
+│   └── response/       # Response DTOs with flattened relationships
 ├── exception/          # Custom exceptions + Global handler
 ├── service/            # Business logic + state transitions
 ├── controller/         # REST API endpoints
@@ -162,19 +167,21 @@ com.example.Transit_Backend
 - `VehicleRepository`, `DriverRepository`, `TripRepository`
 - `SecurityConfig` — permitAll (no auth for prototyping)
 
-### Step 2 — DTOs, Exceptions, Services (Next)
+### Step 2 — DTOs, Exceptions, Services ✅
 - Request/Response DTOs with `jakarta.validation`
-- Custom `ValidationException`, `ResourceNotFoundException`
+- Custom `ValidationException`, `ResourceNotFoundException`, `IllegalStateTransitionException`
 - Global `@RestControllerAdvice` exception handler
 - `VehicleService`, `DriverService`, `TripService` with business rules
 
-### Step 3 — REST Controllers
+### Step 3 — REST Controllers ✅
 - CRUD endpoints for Vehicle, Driver, Trip
 - Status transition endpoints (dispatch, complete, cancel)
 
-### Step 4 — Maintenance, Fuel, Expenses
-- `MaintenanceLog`, `FuelLog`, `Expense` entities + full stack
-- Auto status transitions for maintenance
+### Step 4 — Maintenance, Fuel, Expenses ✅
+- `MaintenanceLog`, `FuelLog`, `Expense` entities + full stack (Entity → Repo → DTO → Service → Controller)
+- `MaintenanceStatus`, `ExpenseCategory` enums
+- JPQL aggregate queries for cost summation (used in analytics)
+- Auto status transitions: create maintenance → IN_SHOP, close → AVAILABLE
 
 ### Step 5 — Dashboard & Analytics
 - KPI aggregation endpoints
