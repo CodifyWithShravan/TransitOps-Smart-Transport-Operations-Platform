@@ -22,56 +22,89 @@ const Maintenance = () => {
 
     useEffect(() => {
         const fetchVehiclesAndLogs = async () => {
-            const localLogs = JSON.parse(localStorage.getItem('live_maintenance_logs') || '[]');
+            // --- STEP 1: Always load the vehicle list ---
+            let vehicleList = [];
             try {
-                const [vRes, mRes] = await Promise.all([
-                    fetch('http://localhost:8080/api/vehicles'),
-                    fetch('http://localhost:8080/api/maintenance')
-                ]);
+                const vRes = await fetch('http://localhost:8080/api/vehicles');
                 if (vRes.ok) {
                     const vData = await vRes.json();
-                    setVehicles(vData.map(v => ({ id: String(v.id), make: v.model || 'Vehicle', reg: v.registrationNumber || '' })));
-                    if (mRes.ok) {
-                        const mData = await mRes.json();
-                        setMaintenanceLogs([
-                            ...localLogs,
-                            ...mData.map(m => ({
-                                id: `M-${m.id}`,
-                                vehicleReg: m.vehicle ? m.vehicle.registrationNumber : 'KA-01-EQ-1001',
-                                type: m.description || 'General Maintenance',
-                                cost: m.cost || 0,
-                                date: m.startDate ? m.startDate.split('T')[0] : '2026-07-12',
-                                status: m.status === 'OPEN' ? 'In Shop' : 'Completed',
-                                badge: m.status === 'OPEN' ? 'bg-warning text-dark' : 'bg-success'
-                            }))
-                        ]);
-                    } else {
-                        setMaintenanceLogs([
-                            ...localLogs,
-                            { id: 'M-1042', vehicleReg: 'GJ01AB1120', type: 'Engine Repair', cost: 45000, date: '2026-07-12', status: 'In Shop', badge: 'bg-warning text-dark' }
-                        ]);
-                    }
-                    setIsLoading(false);
-                    return;
+                    vehicleList = vData.map(v => ({
+                        id: String(v.id),
+                        make: v.model || 'Vehicle',
+                        reg: v.registrationNumber || ''
+                    }));
                 }
             } catch (ignored) {}
 
-            setTimeout(() => {
-                setVehicles([
+            // Merge in any vehicles added locally via Fleet page
+            const localVehicles = JSON.parse(localStorage.getItem('shared_vehicle_registry') || '[]');
+            const existingRegs = new Set(vehicleList.map(v => v.reg));
+            localVehicles.forEach(lv => {
+                if (!existingRegs.has(lv.reg)) {
+                    vehicleList.push(lv);
+                    existingRegs.add(lv.reg);
+                }
+            });
+
+            // Fallback defaults if nothing loaded
+            if (vehicleList.length === 0) {
+                vehicleList = [
                     { id: 'V01', make: 'VAN-05', reg: 'GJ01AB452' },
                     { id: 'V02', make: 'TRUCK-11', reg: 'GJ01AB998' },
-                    { id: 'V03', make: 'MINI-03', reg: 'GJ01AB1120' }
-                ]);
+                    { id: 'V03', make: 'MINI-03', reg: 'GJ01AB1120' },
+                    { id: 'V04', make: 'VAN-09', reg: 'GJ01AB009' }
+                ];
+            }
 
-                setMaintenanceLogs([
-                    ...localLogs,
-                    { id: 'M-1042', vehicleReg: 'GJ01AB1120', type: 'Engine Repair', cost: 45000, date: '2026-07-12', status: 'In Shop', badge: 'bg-warning text-dark' },
+            // Save to shared registry so it stays in sync
+            localStorage.setItem('shared_vehicle_registry', JSON.stringify(vehicleList));
+            setVehicles(vehicleList);
+
+            // --- STEP 2: Load maintenance logs ---
+            const savedPersistent = localStorage.getItem('persistent_maintenance_logs');
+            if (savedPersistent) {
+                setMaintenanceLogs(JSON.parse(savedPersistent));
+                setIsLoading(false);
+                return;
+            }
+
+            // Try loading from API
+            let logsLoaded = false;
+            try {
+                const mRes = await fetch('http://localhost:8080/api/maintenance');
+                if (mRes.ok) {
+                    const mData = await mRes.json();
+                    const mappedLogs = mData.map(m => {
+                        const reg = m.vehicle ? m.vehicle.registrationNumber : 'KA-01-EQ-1001';
+                        const isAvail = localStorage.getItem(`live_veh_status_${reg}`) === 'Available';
+                        return {
+                            id: `M-${m.id}`,
+                            vehicleReg: reg,
+                            type: m.description || 'General Maintenance',
+                            cost: m.cost || 0,
+                            date: m.startDate ? m.startDate.split('T')[0] : '2026-07-12',
+                            status: isAvail ? 'Completed' : (m.status === 'OPEN' ? 'In Shop' : 'Completed'),
+                            badge: isAvail ? 'bg-success' : (m.status === 'OPEN' ? 'bg-warning text-dark' : 'bg-success')
+                        };
+                    });
+                    setMaintenanceLogs(mappedLogs);
+                    localStorage.setItem('persistent_maintenance_logs', JSON.stringify(mappedLogs));
+                    logsLoaded = true;
+                }
+            } catch (ignored) {}
+
+            if (!logsLoaded) {
+                const isAvail = localStorage.getItem('live_veh_status_GJ01AB1120') === 'Available';
+                const defaultLogs = [
+                    { id: 'M-1042', vehicleReg: 'GJ01AB1120', type: 'Engine Repair', cost: 45000, date: '2026-07-12', status: isAvail ? 'Completed' : 'In Shop', badge: isAvail ? 'bg-success' : 'bg-warning text-dark' },
                     { id: 'M-1041', vehicleReg: 'GJ01AB452', type: 'Oil Change', cost: 3500, date: '2026-07-10', status: 'Completed', badge: 'bg-success' },
                     { id: 'M-1039', vehicleReg: 'GJ01AB998', type: 'Tire Replacement', cost: 12000, date: '2026-07-05', status: 'Completed', badge: 'bg-success' }
-                ]);
+                ];
+                setMaintenanceLogs(defaultLogs);
+                localStorage.setItem('persistent_maintenance_logs', JSON.stringify(defaultLogs));
+            }
 
-                setIsLoading(false);
-            }, 400);
+            setIsLoading(false);
         };
 
         fetchVehiclesAndLogs();
@@ -116,7 +149,9 @@ const Maintenance = () => {
             });
         } catch (ignored) {}
 
-        setMaintenanceLogs([newLog, ...maintenanceLogs]);
+        const nextLogs = [newLog, ...maintenanceLogs];
+        setMaintenanceLogs(nextLogs);
+        localStorage.setItem('persistent_maintenance_logs', JSON.stringify(nextLogs));
         setFormData({ vehicleId: '', serviceType: '', cost: '', notes: '', status: 'In Shop' });
     };
 
@@ -269,7 +304,11 @@ const Maintenance = () => {
                                                                 className="btn btn-sm btn-outline-success fw-bold"
                                                                 onClick={() => {
                                                                     localStorage.setItem(`live_veh_status_${log.vehicleReg}`, 'Available');
-                                                                    setMaintenanceLogs(prev => prev.map(item => item.id === log.id ? { ...item, status: 'Completed', badge: 'bg-success' } : item));
+                                                                    setMaintenanceLogs(prev => {
+                                                                        const updated = prev.map(item => item.id === log.id ? { ...item, status: 'Completed', badge: 'bg-success' } : item);
+                                                                        localStorage.setItem('persistent_maintenance_logs', JSON.stringify(updated));
+                                                                        return updated;
+                                                                    });
                                                                     alert(`✅ Maintenance Completed!\n\nVehicle ${log.vehicleReg} is now released from shop and marked Available.`);
                                                                 }}
                                                             >

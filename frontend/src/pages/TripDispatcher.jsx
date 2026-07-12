@@ -7,7 +7,7 @@ import ComingSoonModal from '../components/ComingSoonModal';
 const TripDispatcher = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [comingSoonModule, setComingSoonModule] = useState(null);
-    const [tripStep, setTripStep] = useState(1);
+    const [tripStep, setTripStep] = useState(() => Number(localStorage.getItem('live_trip_step')) || 1);
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
 
@@ -26,34 +26,53 @@ const TripDispatcher = () => {
 
     useEffect(() => {
         const fetchDropdowns = async () => {
+            let vehicleList = [];
+            let driverList = [];
+
             try {
                 const [vRes, dRes] = await Promise.all([
                     fetch('http://localhost:8080/api/vehicles'),
                     fetch('http://localhost:8080/api/drivers')
                 ]);
-                if (vRes.ok && dRes.ok) {
+                if (vRes.ok) {
                     const vData = await vRes.json();
+                    vehicleList = vData.map(v => ({ id: String(v.id), make: v.model || 'Vehicle', capacity: v.maxLoadCapacity || 1000, reg: v.registrationNumber || '' }));
+                }
+                if (dRes.ok) {
                     const dData = await dRes.json();
-                    setVehicles(vData.map(v => ({ id: String(v.id), make: v.model || 'Vehicle', capacity: v.maxLoadCapacity || 1000, reg: v.registrationNumber || '' })));
-                    setDrivers(dData.map(d => ({ id: String(d.id), name: d.name || 'Driver' })));
-                    setIsLoading(false);
-                    return;
+                    driverList = dData.map(d => ({ id: String(d.id), name: d.name || 'Driver' }));
                 }
             } catch (ignored) {}
 
-            setTimeout(() => {
-                setVehicles([
+            // Merge shared vehicle registry (includes vehicles added via Fleet)
+            const localVehicles = JSON.parse(localStorage.getItem('shared_vehicle_registry') || '[]');
+            const existingRegs = new Set(vehicleList.map(v => v.reg));
+            localVehicles.forEach(lv => {
+                if (lv.reg && !existingRegs.has(lv.reg)) {
+                    vehicleList.push({ id: lv.id || lv.reg, make: lv.make, capacity: 1000, reg: lv.reg });
+                    existingRegs.add(lv.reg);
+                }
+            });
+
+            // Fallback defaults
+            if (vehicleList.length === 0) {
+                vehicleList = [
                     { id: 'V01', make: 'VAN-05', capacity: 500, reg: 'GJ01AB452' },
                     { id: 'V02', make: 'TRUCK-11', capacity: 5000, reg: 'GJ01AB998' },
                     { id: 'V03', make: 'MINI-03', capacity: 1000, reg: 'GJ01AB1120' }
-                ]);
-                setDrivers([
+                ];
+            }
+            if (driverList.length === 0) {
+                driverList = [
                     { id: 'D01', name: 'Alex Mercer' },
                     { id: 'D02', name: 'Priya Sharma' },
                     { id: 'D04', name: 'Sarah Connor' }
-                ]);
-                setIsLoading(false);
-            }, 400);
+                ];
+            }
+
+            setVehicles(vehicleList);
+            setDrivers(driverList);
+            setIsLoading(false);
         };
 
         fetchDropdowns();
@@ -81,6 +100,7 @@ const TripDispatcher = () => {
             localStorage.setItem(`live_dri_status_${selDri.id}`, 'On Route');
         }
         setTripStep(3);
+        localStorage.setItem('live_trip_step', '3');
 
         try {
             const res = await fetch('http://localhost:8080/api/trips', {
@@ -336,6 +356,7 @@ const TripDispatcher = () => {
                                                             localStorage.setItem(`live_dri_status_${selDri.id}`, 'Active');
                                                         }
                                                         setTripStep(4);
+                                                        localStorage.setItem('live_trip_step', '4');
                                                     }}
                                                 >
                                                     ✅ Complete Trip & Release Vehicle
@@ -348,7 +369,10 @@ const TripDispatcher = () => {
                                                 <button
                                                     type="button"
                                                     className="btn btn-outline-light btn-sm mt-2 w-100"
-                                                    onClick={() => setTripStep(1)}
+                                                    onClick={() => {
+                                                        setTripStep(1);
+                                                        localStorage.setItem('live_trip_step', '1');
+                                                    }}
                                                 >
                                                     Dispatch Another Trip
                                                 </button>

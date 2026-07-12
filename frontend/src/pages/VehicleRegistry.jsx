@@ -39,7 +39,7 @@ const VehicleRegistry = () => {
             });
             if (res.ok) {
                 const saved = await res.json();
-                setVehicles(prev => [{
+                const newEntry = {
                     regNo: saved.registrationNumber,
                     makeModel: saved.model,
                     type: saved.type,
@@ -48,13 +48,18 @@ const VehicleRegistry = () => {
                     cost: `₹${saved.acquisitionCost}`,
                     status: 'Available',
                     badge: 'bg-success'
-                }, ...prev]);
+                };
+                setVehicles(prev => {
+                    const next = [newEntry, ...prev];
+                    syncSharedRegistry(next);
+                    return next;
+                });
                 setShowAddForm(false);
                 setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
                 return;
             }
-        } catch (ignored) {}
-        setVehicles(prev => [{
+        } catch (ignored) { }
+        const newEntry = {
             regNo: newVehicle.regNo,
             makeModel: newVehicle.makeModel,
             type: newVehicle.type,
@@ -63,9 +68,24 @@ const VehicleRegistry = () => {
             cost: `₹${newVehicle.cost}`,
             status: 'Available',
             badge: 'bg-success'
-        }, ...prev]);
+        };
+        setVehicles(prev => {
+            const next = [newEntry, ...prev];
+            syncSharedRegistry(next);
+            return next;
+        });
         setShowAddForm(false);
         setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
+    };
+
+    // Sync shared vehicle registry for Maintenance & Trips pages
+    const syncSharedRegistry = (vehicleArray) => {
+        const registry = vehicleArray.map(v => ({
+            id: v.regNo || v.id,
+            make: v.makeModel || v.make,
+            reg: v.regNo || v.reg
+        }));
+        localStorage.setItem('shared_vehicle_registry', JSON.stringify(registry));
     };
 
     useEffect(() => {
@@ -85,18 +105,23 @@ const VehicleRegistry = () => {
                         badge: v.status === 'ON_TRIP' ? 'bg-primary' : (v.status === 'IN_SHOP' ? 'bg-warning text-dark' : (v.status === 'RETIRED' ? 'bg-danger' : 'bg-success'))
                     }));
                     setVehicles(mapped);
+                    syncSharedRegistry(mapped);
                     setIsLoading(false);
                     return;
                 }
             } catch (ignored) { }
 
-            setVehicles([
-                { regNo: 'GJ01AB452', makeModel: 'VAN-05', type: 'Van', capacity: '500 kg', odometer: '74,000', cost: '6,20,000', status: 'Available', badge: 'bg-success' },
-                { regNo: 'GJ01AB998', makeModel: 'TRUCK-11', type: 'Truck', capacity: '5 Ton', odometer: '182,000', cost: '24,50,000', status: 'On Trip', badge: 'bg-primary' },
-                { regNo: 'GJ01AB1120', makeModel: 'MINI-03', type: 'Mini', capacity: '1 Ton', odometer: '66,000', cost: '4,10,000', status: 'In Shop', badge: 'bg-warning text-dark' },
-                { regNo: 'GJ01AB009', makeModel: 'VAN-09', type: 'Van', capacity: '750 kg', odometer: '241,900', cost: '5,90,000', status: 'Retired', badge: 'bg-danger' },
-            ]);
-            setIsLoading(false);
+            setTimeout(() => {
+                const defaults = [
+                    { regNo: 'GJ01AB452', makeModel: 'VAN-05', type: 'Van', capacity: '500 kg', odometer: '74,000', cost: '6,20,000', status: 'Available', badge: 'bg-success' },
+                    { regNo: 'GJ01AB998', makeModel: 'TRUCK-11', type: 'Truck', capacity: '5 Ton', odometer: '182,000', cost: '24,50,000', status: 'On Trip', badge: 'bg-primary' },
+                    { regNo: 'GJ01AB1120', makeModel: 'MINI-03', type: 'Mini', capacity: '1 Ton', odometer: '66,000', cost: '4,10,000', status: 'In Shop', badge: 'bg-warning text-dark' },
+                    { regNo: 'GJ01AB009', makeModel: 'VAN-09', type: 'Van', capacity: '750 kg', odometer: '241,900', cost: '5,90,000', status: 'Retired', badge: 'bg-danger' },
+                ];
+                setVehicles(defaults);
+                syncSharedRegistry(defaults);
+                setIsLoading(false);
+            }, 500);
         };
 
         fetchVehicles();
@@ -228,15 +253,15 @@ const VehicleRegistry = () => {
                             <form onSubmit={handleAddVehicle} className="row g-2 align-items-end">
                                 <div className="col-md-3">
                                     <label className="form-label small text-secondary">Reg Number</label>
-                                    <input type="text" className="form-control form-control-sm" placeholder="e.g. MH-12-AB-9999" value={newVehicle.regNo} onChange={e => setNewVehicle({...newVehicle, regNo: e.target.value})} required />
+                                    <input type="text" className="form-control form-control-sm" placeholder="e.g. MH-12-AB-9999" value={newVehicle.regNo} onChange={e => setNewVehicle({ ...newVehicle, regNo: e.target.value })} required />
                                 </div>
                                 <div className="col-md-2">
                                     <label className="form-label small text-secondary">Make / Model</label>
-                                    <input type="text" className="form-control form-control-sm" placeholder="e.g. Volvo FH16" value={newVehicle.makeModel} onChange={e => setNewVehicle({...newVehicle, makeModel: e.target.value})} required />
+                                    <input type="text" className="form-control form-control-sm" placeholder="e.g. Volvo FH16" value={newVehicle.makeModel} onChange={e => setNewVehicle({ ...newVehicle, makeModel: e.target.value })} required />
                                 </div>
                                 <div className="col-md-2">
                                     <label className="form-label small text-secondary">Type</label>
-                                    <select className="form-select form-select-sm" value={newVehicle.type} onChange={e => setNewVehicle({...newVehicle, type: e.target.value})}>
+                                    <select className="form-select form-select-sm" value={newVehicle.type} onChange={e => setNewVehicle({ ...newVehicle, type: e.target.value })}>
                                         <option value="Truck">Truck</option>
                                         <option value="Van">Van</option>
                                         <option value="Mini">Mini</option>
@@ -244,11 +269,11 @@ const VehicleRegistry = () => {
                                 </div>
                                 <div className="col-md-2">
                                     <label className="form-label small text-secondary">Capacity (kg)</label>
-                                    <input type="text" className="form-control form-control-sm" placeholder="5000" value={newVehicle.capacity} onChange={e => setNewVehicle({...newVehicle, capacity: e.target.value})} />
+                                    <input type="text" className="form-control form-control-sm" placeholder="5000" value={newVehicle.capacity} onChange={e => setNewVehicle({ ...newVehicle, capacity: e.target.value })} />
                                 </div>
                                 <div className="col-md-2">
                                     <label className="form-label small text-secondary">Acq. Cost (₹)</label>
-                                    <input type="number" className="form-control form-control-sm" placeholder="1500000" value={newVehicle.cost} onChange={e => setNewVehicle({...newVehicle, cost: e.target.value})} />
+                                    <input type="number" className="form-control form-control-sm" placeholder="1500000" value={newVehicle.cost} onChange={e => setNewVehicle({ ...newVehicle, cost: e.target.value })} />
                                 </div>
                                 <div className="col-md-1">
                                     <button type="submit" className="btn btn-success btn-sm w-100 fw-bold">Save</button>
