@@ -64,12 +64,6 @@ const Drivers = () => {
         fetchDrivers();
     }, []);
 
-    const handleStatusChange = async (id, newStatus) => {
-        // You would typically make an API call to update driver status here
-        // For now, updating local state until the backend has a specific endpoint for arbitrary status updates
-        setDrivers(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
-    };
-
     const filteredDrivers = drivers.filter(driver => {
         const liveStatus = driver.status;
         const matchesSearch = driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -212,21 +206,9 @@ const Drivers = () => {
                                                 </span>
                                             </td>
                                             <td>
-                                                <div className="d-flex align-items-center gap-2">
-                                                    <span className={`badge ${badgeColor} px-2 py-1 rounded`} style={{ minWidth: '80px' }}>
-                                                        {liveStatus}
-                                                    </span>
-                                                    <select
-                                                        className="form-select form-select-sm bg-dark text-light border-secondary"
-                                                        style={{ width: '110px', fontSize: '11px' }}
-                                                        value={liveStatus}
-                                                        onChange={(e) => handleStatusChange(driver.id, e.target.value)}
-                                                    >
-                                                        <option value="Active">Active</option>
-                                                        <option value="On Route">On Route</option>
-                                                        <option value="On Leave">On Leave</option>
-                                                    </select>
-                                                </div>
+                                                <span className={`badge ${badgeColor} px-3 py-2 rounded`} style={{ minWidth: '90px' }}>
+                                                    {liveStatus}
+                                                </span>
                                             </td>
                                             <td className="text-end">
                                                 <button className="btn btn-sm btn-outline-secondary">Profile</button>
@@ -245,16 +227,16 @@ const Drivers = () => {
                         </table>
                     </div>
 
-                    <div className="mt-4 d-flex gap-3">
-                        <span className="badge bg-success px-3 py-2">Active</span>
-                        <span className="badge bg-primary px-3 py-2">On Route</span>
-                        <span className="badge bg-secondary px-3 py-2">On Leave</span>
-                        <span className="badge bg-danger px-3 py-2">Suspended</span>
-                    </div>
-                    <div className="mt-2">
-                        <small className="text-danger" style={{ opacity: 0.8 }}>
-                            Rule: Suspended drivers cannot be assigned to new trips.
-                        </small>
+                    <div className="d-flex align-items-center justify-content-between mt-3 pt-2 border-top border-secondary border-opacity-25 small text-muted">
+                        <div className="d-flex align-items-center gap-3">
+                            <span>Legend:</span>
+                            <span className="badge bg-success px-2 py-1">Active</span>
+                            <span className="badge bg-primary px-2 py-1">On Route / On Trip</span>
+                            <span className="badge bg-warning text-dark px-2 py-1">On Leave</span>
+                        </div>
+                        <span className="text-secondary fst-italic">
+                            ℹ️ Driver statuses update automatically when assigned or released from trips.
+                        </span>
                     </div>
 
                 </div>
