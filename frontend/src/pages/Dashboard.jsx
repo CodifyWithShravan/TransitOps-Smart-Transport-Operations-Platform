@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/Dashboard.css';
 import { Link } from 'react-router-dom';
 import ComingSoonModal from '../components/ComingSoonModal';
+import TopHeader from '../components/TopHeader';
 import { dashboardApi, tripApi } from '../services/api';
 
 const Dashboard = () => {
@@ -121,17 +122,7 @@ const Dashboard = () => {
 
                 <div className="col-md-10 p-4">
 
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                        <div className="w-50">
-                            <input type="text" className="form-control bg-transparent text-light border-secondary w-50" placeholder="Search..." />
-                        </div>
-                        <div className="d-flex align-items-center">
-                            <span className="me-3 text-secondary text-sm">Raven K. <br /><small className="text-muted">Dispatcher</small></span>
-                            <div className="rounded-circle bg-secondary text-center rounded-avatar d-flex justify-content-center align-items-center">
-                                RK
-                            </div>
-                        </div>
-                    </div>
+                    <TopHeader />
 
                     <div className="row mb-4 flex-nowrap overflow-auto hide-scrollbar">
                         {data.stats.map((stat, idx) => (
@@ -173,6 +164,13 @@ const Dashboard = () => {
                                                 <td className="text-info fw-bold">{trip.eta}</td>
                                             </tr>
                                         ))}
+                                        {data.recentTrips.length === 0 && (
+                                            <tr>
+                                                <td colSpan="5" className="text-center py-4 text-muted">
+                                                    No recent trips logged yet.
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

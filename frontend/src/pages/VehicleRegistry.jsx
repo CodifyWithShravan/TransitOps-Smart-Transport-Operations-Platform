@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/VehicleRegistry.css';
 import { Link } from 'react-router-dom';
 import ComingSoonModal from '../components/ComingSoonModal';
+import TopHeader from '../components/TopHeader';
 import { vehicleApi } from '../services/api';
 
 const VehicleRegistry = () => {
@@ -35,47 +36,37 @@ const VehicleRegistry = () => {
                 status: 'AVAILABLE'
             });
 
-            const newEntry = {
-                regNo: saved.registrationNumber,
-                makeModel: saved.model,
-                type: saved.type,
-                capacity: `${saved.maxLoadCapacity} kg`,
-                odometer: `${saved.odometer} km`,
-                cost: `₹${saved.acquisitionCost}`,
-                status: 'Available',
-                badge: 'bg-success'
-            };
-            
-            setVehicles(prev => [newEntry, ...prev]);
             setShowAddForm(false);
             setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
+            fetchVehicles();
         } catch (error) {
             alert(`Failed to add vehicle: ${error.message}`);
         }
     };
 
-    useEffect(() => {
-        const fetchVehicles = async () => {
-            try {
-                const data = await vehicleApi.getAll();
-                const mapped = data.map(v => ({
-                    regNo: v.registrationNumber || 'N/A',
-                    makeModel: v.model || 'Unknown',
-                    type: v.type || 'Truck',
-                    capacity: `${v.maxLoadCapacity || 0} kg`,
-                    odometer: `${v.odometer || 0} km`,
-                    cost: `₹${v.acquisitionCost || 0}`,
-                    status: v.status === 'ON_TRIP' ? 'On Trip' : (v.status === 'IN_SHOP' ? 'In Shop' : (v.status === 'RETIRED' ? 'Retired' : 'Available')),
-                    badge: v.status === 'ON_TRIP' ? 'bg-primary' : (v.status === 'IN_SHOP' ? 'bg-warning text-dark' : (v.status === 'RETIRED' ? 'bg-danger' : 'bg-success'))
-                }));
-                setVehicles(mapped);
-            } catch (error) {
-                console.error("Failed to fetch vehicles:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const fetchVehicles = async () => {
+        try {
+            const data = await vehicleApi.getAll();
+            const mapped = data.map(v => ({
+                id: v.id,
+                regNo: v.registrationNumber || 'N/A',
+                makeModel: v.model || 'Unknown',
+                type: v.type || 'Truck',
+                capacity: `${v.maxLoadCapacity || 0} kg`,
+                odometer: `${v.odometer || 0} km`,
+                cost: `₹${v.acquisitionCost || 0}`,
+                status: v.status === 'ON_TRIP' ? 'On Trip' : (v.status === 'IN_SHOP' ? 'In Shop' : (v.status === 'RETIRED' ? 'Retired' : 'Available')),
+                badge: v.status === 'ON_TRIP' ? 'bg-primary' : (v.status === 'IN_SHOP' ? 'bg-warning text-dark' : (v.status === 'RETIRED' ? 'bg-danger' : 'bg-success'))
+            }));
+            setVehicles(mapped);
+        } catch (error) {
+            console.error("Failed to fetch vehicles:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchVehicles();
     }, []);
 
@@ -149,23 +140,11 @@ const VehicleRegistry = () => {
 
                 <div className="col-md-10 p-4">
 
-                    <div className="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
-                        <div className="w-50">
-                            <input
-                                type="text"
-                                className="form-control bg-transparent text-light border-secondary w-50"
-                                placeholder="Search Reg No. or Make..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        <div className="d-flex align-items-center">
-                            <span className="me-3 text-secondary text-sm text-end">Raven K. <br /><small className="text-muted">Dispatcher</small></span>
-                            <div className="rounded-circle bg-secondary text-center rounded-avatar d-flex justify-content-center align-items-center">
-                                RK
-                            </div>
-                        </div>
-                    </div>
+                    <TopHeader
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        searchPlaceholder="Search Reg No. or Make..."
+                    />
 
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <div className="d-flex gap-3">

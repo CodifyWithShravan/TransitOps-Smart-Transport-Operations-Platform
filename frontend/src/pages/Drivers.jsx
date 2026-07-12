@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/Drivers.css';
 import ComingSoonModal from '../components/ComingSoonModal';
+import TopHeader from '../components/TopHeader';
 import { driverApi } from '../services/api';
 
 const Drivers = () => {
@@ -132,23 +133,11 @@ const Drivers = () => {
 
                 <div className="col-md-10 p-4">
 
-                    <div className="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
-                        <div className="w-50">
-                            <input
-                                type="text"
-                                className="form-control bg-transparent text-light border-secondary w-50"
-                                placeholder="Search Driver Name or License..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        <div className="d-flex align-items-center">
-                            <span className="me-3 text-secondary text-sm text-end">Raven K. <br /><small className="text-muted">Dispatcher</small></span>
-                            <div className="rounded-circle bg-secondary text-center rounded-avatar d-flex justify-content-center align-items-center">
-                                RK
-                            </div>
-                        </div>
-                    </div>
+                    <TopHeader
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        searchPlaceholder="Search Driver Name or License..."
+                    />
 
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <div className="d-flex align-items-center gap-2">
@@ -245,6 +234,13 @@ const Drivers = () => {
                                         </tr>
                                     );
                                 })}
+                                {filteredDrivers.length === 0 && (
+                                    <tr>
+                                        <td colSpan="7" className="text-center py-5 text-muted">
+                                            No drivers match your search filters.
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>

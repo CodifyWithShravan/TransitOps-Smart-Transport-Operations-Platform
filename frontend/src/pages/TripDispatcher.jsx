@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/TripDispatcher.css';
 import ComingSoonModal from '../components/ComingSoonModal';
+import TopHeader from '../components/TopHeader';
 import { vehicleApi, driverApi, tripApi } from '../services/api';
 
 const TripDispatcher = () => {
@@ -148,7 +149,10 @@ const TripDispatcher = () => {
 
                 <div className="col-md-10 p-4">
 
-                    {/* Header */}
+                    {/* Top User Header */}
+                    <TopHeader />
+
+                    {/* Sub Header */}
                     <div className="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
                         <h5 className="mb-0 text-white">Trip Dispatcher</h5>
                         <div className="d-flex align-items-center gap-3">
