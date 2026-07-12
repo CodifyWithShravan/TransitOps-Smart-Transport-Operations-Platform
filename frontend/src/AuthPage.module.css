@@ -228,3 +228,29 @@
   padding: 0;
   margin: 0;
 }
+
+/* --- Auth Toggle (Login vs Register) --- */
+.authToggleSection {
+  margin-top: 25px;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.authToggleBtn {
+  background: none;
+  border: none;
+  color: #9c621f;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 6px;
+  font-size: 0.9rem;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.authToggleBtn:hover {
+  color: #b57428;
+}
