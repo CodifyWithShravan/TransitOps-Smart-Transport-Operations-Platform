@@ -36,15 +36,15 @@ const Maintenance = () => {
             }));
             
             const mappedLogs = mData.map(m => {
-                const reg = m.vehicle ? m.vehicle.registrationNumber : 'Unknown';
+                const reg = m.vehicleRegistrationNumber || (m.vehicle ? m.vehicle.registrationNumber : 'Unknown');
                 return {
                     id: m.id,
                     vehicleReg: reg,
-                    type: m.description || 'General Maintenance',
+                    type: m.maintenanceType || m.description || 'General Maintenance',
                     cost: m.cost || 0,
-                    date: m.startDate ? m.startDate.split('T')[0] : 'N/A',
-                    status: m.status === 'OPEN' ? 'In Shop' : 'Completed',
-                    badge: m.status === 'OPEN' ? 'bg-warning text-dark' : 'bg-success'
+                    date: m.startDate ? String(m.startDate).split('T')[0] : 'N/A',
+                    status: m.status === 'OPEN' || m.status === 'IN_PROGRESS' ? 'In Shop' : 'Completed',
+                    badge: m.status === 'OPEN' || m.status === 'IN_PROGRESS' ? 'bg-warning text-dark' : 'bg-success'
                 };
             });
             
@@ -75,10 +75,10 @@ const Maintenance = () => {
         try {
             await maintenanceApi.create({
                 vehicleId: Number(selectedVehicle.id),
-                description: formData.serviceType || 'Routine Maintenance',
-                cost: parseInt(formData.cost) || 0,
-                maintenanceType: 'ROUTINE',
-                status: 'OPEN'
+                maintenanceType: formData.serviceType || 'ROUTINE',
+                description: formData.notes || formData.serviceType || 'Routine Maintenance',
+                cost: parseFloat(formData.cost) || 0,
+                startDate: new Date().toISOString().split('T')[0]
             });
             
             fetchVehiclesAndLogs();
