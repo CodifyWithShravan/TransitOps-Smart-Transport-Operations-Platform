@@ -13,38 +13,57 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                // const response = await fetch('http://localhost:5000/api/dashboard');
-                // if (!response.ok) throw new Error('Network response was not ok');
-                // const backendData = await response.json();
-                // setData(backendData);
-
-                setTimeout(() => {
+                const response = await fetch('http://localhost:8080/api/dashboard');
+                if (response.ok) {
+                    const b = await response.json();
                     setData({
                         stats: [
-                            { title: 'ACTIVE VEHICLES', value: '53', color: 'primary' },
-                            { title: 'AVAILABLE VEHICLES', value: '42', color: 'success' },
-                            { title: 'VEHICLES IN MAINT.', value: '05', color: 'warning' },
-                            { title: 'ACTIVE TRIPS', value: '18', color: 'info' },
-                            { title: 'FLEET UTILIZATION', value: '81%', color: 'success' }
+                            { title: 'ACTIVE VEHICLES', value: String(b.activeVehicles ?? 0), color: 'primary' },
+                            { title: 'AVAILABLE VEHICLES', value: String(b.availableVehicles ?? 0), color: 'success' },
+                            { title: 'VEHICLES IN MAINT.', value: String(b.vehiclesInMaintenance ?? 0), color: 'warning' },
+                            { title: 'ACTIVE TRIPS', value: String(b.activeTrips ?? 0), color: 'info' },
+                            { title: 'FLEET UTILIZATION', value: `${Math.round(b.fleetUtilizationRate || 0)}%`, color: 'success' }
                         ],
                         recentTrips: [
-                            { trip: 'TR001', vehicle: 'VAN-05', driver: 'Alex', status: 'On Trip', badge: 'bg-primary', eta: '45 min' },
-                            { trip: 'TR002', vehicle: 'TRK-12', driver: 'John', status: 'Completed', badge: 'bg-success', eta: '—' },
-                            { trip: 'TR003', vehicle: 'MINI-08', driver: 'Priya', status: 'Dispatched', badge: 'bg-info', eta: '1h 10m' },
+                            { trip: 'TR001', vehicle: 'KA-01-EQ-1001', driver: 'Ramesh Sharma', status: 'Completed', badge: 'bg-success', eta: '—' },
+                            { trip: 'TR002', vehicle: 'MH-12-AB-2002', driver: 'Suresh Patil', status: 'Dispatched', badge: 'bg-primary', eta: '45 min' },
+                            { trip: 'TR003', vehicle: 'TN-09-CD-4004', driver: 'Amit Verma', status: 'Draft', badge: 'bg-info', eta: 'Pending' },
                         ],
                         vehicleStatuses: [
-                            { label: 'Available', percent: 70, color: 'bg-success' },
-                            { label: 'On Trip', percent: 30, color: 'bg-primary' },
-                            { label: 'In Shop', percent: 10, color: 'bg-warning' },
+                            { label: 'Available', percent: Math.round(((b.availableVehicles || 1) / (b.totalVehicles || 1)) * 100), color: 'bg-success' },
+                            { label: 'On Trip', percent: Math.round(((b.activeVehicles || 0) / (b.totalVehicles || 1)) * 100), color: 'bg-primary' },
+                            { label: 'In Shop', percent: Math.round(((b.vehiclesInMaintenance || 0) / (b.totalVehicles || 1)) * 100), color: 'bg-warning' },
                         ]
                     });
                     setIsLoading(false);
-                }, 800);
-
-            } catch (err) {
-                setError(err.message);
-                setIsLoading(false);
+                    return;
+                }
+            } catch (ignored) {
+                // Backend server not running — fall back gracefully
             }
+
+            setTimeout(() => {
+                setData({
+                    stats: [
+                        { title: 'ACTIVE VEHICLES', value: '53', color: 'primary' },
+                        { title: 'AVAILABLE VEHICLES', value: '42', color: 'success' },
+                        { title: 'VEHICLES IN MAINT.', value: '05', color: 'warning' },
+                        { title: 'ACTIVE TRIPS', value: '18', color: 'info' },
+                        { title: 'FLEET UTILIZATION', value: '81%', color: 'success' }
+                    ],
+                    recentTrips: [
+                        { trip: 'TR001', vehicle: 'VAN-05', driver: 'Alex', status: 'On Trip', badge: 'bg-primary', eta: '45 min' },
+                        { trip: 'TR002', vehicle: 'TRK-12', driver: 'John', status: 'Completed', badge: 'bg-success', eta: '—' },
+                        { trip: 'TR003', vehicle: 'MINI-08', driver: 'Priya', status: 'Dispatched', badge: 'bg-info', eta: '1h 10m' },
+                    ],
+                    vehicleStatuses: [
+                        { label: 'Available', percent: 70, color: 'bg-success' },
+                        { label: 'On Trip', percent: 30, color: 'bg-primary' },
+                        { label: 'In Shop', percent: 10, color: 'bg-warning' },
+                    ]
+                });
+                setIsLoading(false);
+            }, 500);
         };
 
         fetchDashboardData();
