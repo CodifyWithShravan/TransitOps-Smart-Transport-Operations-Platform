@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import styles from './AuthPage.module.css';
-import { authApi } from './services/api';
+import styles from '../styles/AuthPage.module.css';
+import { authApi } from '../services/api';
 
 const AuthPage = () => {
   // 1. Form & Mode States

@@ -6,7 +6,7 @@ import Drivers from './pages/Drivers';
 import TripDispatcher from './pages/TripDispatcher';
 import Maintenance from './pages/Maintenance';
 import FuelExpenses from './pages/FuelExpenses';
-import AuthPage from './AuthPage';
+import AuthPage from './pages/AuthPage';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('transitops_token');
