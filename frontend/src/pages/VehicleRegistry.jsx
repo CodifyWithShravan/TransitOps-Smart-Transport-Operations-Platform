@@ -36,20 +36,9 @@ const VehicleRegistry = () => {
                 status: 'AVAILABLE'
             });
 
-            const newEntry = {
-                regNo: saved.registrationNumber,
-                makeModel: saved.model,
-                type: saved.type,
-                capacity: `${saved.maxLoadCapacity} kg`,
-                odometer: `${saved.odometer} km`,
-                cost: `₹${saved.acquisitionCost}`,
-                status: 'Available',
-                badge: 'bg-success'
-            };
-            
-            setVehicles(prev => [newEntry, ...prev]);
             setShowAddForm(false);
             setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
+            fetchVehicles();
         } catch (error) {
             alert(`Failed to add vehicle: ${error.message}`);
         }
@@ -60,6 +49,7 @@ const VehicleRegistry = () => {
             try {
                 const data = await vehicleApi.getAll();
                 const mapped = data.map(v => ({
+                    id: v.id,
                     regNo: v.registrationNumber || 'N/A',
                     makeModel: v.model || 'Unknown',
                     type: v.type || 'Truck',
