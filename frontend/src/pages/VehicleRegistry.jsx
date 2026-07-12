@@ -39,7 +39,7 @@ const VehicleRegistry = () => {
             });
             if (res.ok) {
                 const saved = await res.json();
-                setVehicles(prev => [{
+                const newEntry = {
                     regNo: saved.registrationNumber,
                     makeModel: saved.model,
                     type: saved.type,
@@ -48,13 +48,18 @@ const VehicleRegistry = () => {
                     cost: `₹${saved.acquisitionCost}`,
                     status: 'Available',
                     badge: 'bg-success'
-                }, ...prev]);
+                };
+                setVehicles(prev => {
+                    const next = [newEntry, ...prev];
+                    syncSharedRegistry(next);
+                    return next;
+                });
                 setShowAddForm(false);
                 setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
                 return;
             }
         } catch (ignored) {}
-        setVehicles(prev => [{
+        const newEntry = {
             regNo: newVehicle.regNo,
             makeModel: newVehicle.makeModel,
             type: newVehicle.type,
@@ -63,9 +68,24 @@ const VehicleRegistry = () => {
             cost: `₹${newVehicle.cost}`,
             status: 'Available',
             badge: 'bg-success'
-        }, ...prev]);
+        };
+        setVehicles(prev => {
+            const next = [newEntry, ...prev];
+            syncSharedRegistry(next);
+            return next;
+        });
         setShowAddForm(false);
         setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
+    };
+
+    // Sync shared vehicle registry for Maintenance & Trips pages
+    const syncSharedRegistry = (vehicleArray) => {
+        const registry = vehicleArray.map(v => ({
+            id: v.regNo || v.id,
+            make: v.makeModel || v.make,
+            reg: v.regNo || v.reg
+        }));
+        localStorage.setItem('shared_vehicle_registry', JSON.stringify(registry));
     };
 
     useEffect(() => {
@@ -85,18 +105,21 @@ const VehicleRegistry = () => {
                         badge: v.status === 'ON_TRIP' ? 'bg-primary' : (v.status === 'IN_SHOP' ? 'bg-warning text-dark' : (v.status === 'RETIRED' ? 'bg-danger' : 'bg-success'))
                     }));
                     setVehicles(mapped);
+                    syncSharedRegistry(mapped);
                     setIsLoading(false);
                     return;
                 }
             } catch (ignored) {}
 
             setTimeout(() => {
-                setVehicles([
+                const defaults = [
                     { regNo: 'GJ01AB452', makeModel: 'VAN-05', type: 'Van', capacity: '500 kg', odometer: '74,000', cost: '6,20,000', status: 'Available', badge: 'bg-success' },
                     { regNo: 'GJ01AB998', makeModel: 'TRUCK-11', type: 'Truck', capacity: '5 Ton', odometer: '182,000', cost: '24,50,000', status: 'On Trip', badge: 'bg-primary' },
                     { regNo: 'GJ01AB1120', makeModel: 'MINI-03', type: 'Mini', capacity: '1 Ton', odometer: '66,000', cost: '4,10,000', status: 'In Shop', badge: 'bg-warning text-dark' },
                     { regNo: 'GJ01AB009', makeModel: 'VAN-09', type: 'Van', capacity: '750 kg', odometer: '241,900', cost: '5,90,000', status: 'Retired', badge: 'bg-danger' },
-                ]);
+                ];
+                setVehicles(defaults);
+                syncSharedRegistry(defaults);
                 setIsLoading(false);
             }, 500);
         };
