@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './VehicleRegistry.css';
+import '../styles/VehicleRegistry.css';
+import { Link } from 'react-router-dom';
 
 const VehicleRegistry = () => {
     const [vehicles, setVehicles] = useState([]);
@@ -53,13 +54,22 @@ const VehicleRegistry = () => {
                         <h4 className="mb-0 text-white">TransitOps</h4>
                     </div>
                     <ul className="nav flex-column mt-3 w-100">
-                        {navItems.map((item, index) => (
-                            <li className="nav-item w-100" key={index}>
-                                <a href="#" className={`nav-link px-4 py-2 ${item === 'Fleet' ? 'active-nav-item' : 'text-secondary hover-nav'}`}>
-                                    {item}
-                                </a>
-                            </li>
-                        ))}
+                        {navItems.map((item, index) => {
+                            let path = "/";
+                            if (item === 'Fleet') path = "/fleet";
+                            const isActive = item === 'Fleet';
+
+                            return (
+                                <li className="nav-item w-100" key={index}>
+                                    <Link
+                                        to={path}
+                                        className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}
+                                    >
+                                        {item}
+                                    </Link>
+                                </li>
+                            );
+                        })}
                     </ul>
                 </div>
 
