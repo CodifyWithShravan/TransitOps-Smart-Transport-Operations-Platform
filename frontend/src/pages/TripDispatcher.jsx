@@ -83,9 +83,12 @@ const TripDispatcher = () => {
         const selDri = drivers.find(d => d.id === formData.driverId);
         const tripId = `TR${Math.floor(100 + Math.random() * 900)}`;
 
+        const vehRegId = selVeh ? (selVeh.reg || selVeh.id) : 'V01';
+
         const tripObj = {
             id: tripId,
             vehicle: selVeh ? (selVeh.reg || selVeh.make) : 'VAN-05',
+            vehicleRegId: vehRegId,
             vehicleId: formData.vehicleId,
             vehicleMake: selVeh ? selVeh.make : '',
             driver: selDri ? selDri.name : 'Alex Mercer',
@@ -99,7 +102,7 @@ const TripDispatcher = () => {
 
         // Mark vehicle & driver as busy
         if (selVeh) {
-            localStorage.setItem(`live_veh_status_${selVeh.reg || selVeh.id}`, 'On Trip');
+            localStorage.setItem(`live_veh_status_${vehRegId}`, 'On Trip');
         }
         if (selDri) {
             localStorage.setItem(`live_dri_status_${selDri.id}`, 'On Route');
@@ -147,7 +150,9 @@ const TripDispatcher = () => {
         if (!trip) return;
 
         // Release vehicle
-        if (trip.vehicle) {
+        if (trip.vehicleRegId) {
+            localStorage.setItem(`live_veh_status_${trip.vehicleRegId}`, 'Available');
+        } else if (trip.vehicle) {
             localStorage.setItem(`live_veh_status_${trip.vehicle}`, 'Available');
         }
         // Release driver
