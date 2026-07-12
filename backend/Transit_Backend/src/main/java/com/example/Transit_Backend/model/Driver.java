@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -43,6 +44,12 @@ public class Driver {
     private String licenseNumber;
 
     /**
+     * Category of the driving license (e.g., "LMV", "HMV", "HTV").
+     */
+    @Column(nullable = false, length = 30)
+    private String licenseCategory;
+
+    /**
      * Expiry date of the driver's license.
      * Used during trip dispatch validation.
      */
@@ -54,6 +61,14 @@ public class Driver {
      */
     @Column(nullable = false, length = 20)
     private String contact;
+
+    /**
+     * Safety score of the driver (0–100).
+     * Starts at 100 for new drivers; adjusted based on incidents.
+     */
+    @Column(nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal safetyScore = new BigDecimal("100.00");
 
     /**
      * Current operational status of the driver.
