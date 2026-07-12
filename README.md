@@ -4,12 +4,13 @@
 
 ![TransitOps Banner](https://img.shields.io/badge/TransitOps-Smart%20Transport%20Operations-00E5FF?style=for-the-badge&logo=fleet)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot_3-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
+![Spring Security](https://img.shields.io/badge/Spring_Security_6-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white)
 ![React 18](https://img.shields.io/badge/React_18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Java 21](https://img.shields.io/badge/Java_21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![MySQL 8](https://img.shields.io/badge/MySQL_8-005C84?style=for-the-badge&logo=mysql&logoColor=white)
 ![JWT Security](https://img.shields.io/badge/JWT_Auth-000000?style=for-the-badge&logo=json-web-tokens&logoColor=white)
 
-An enterprise-grade, end-to-end fleet management, intelligent trip dispatching, maintenance automation, and financial analytics platform.
+An enterprise-grade, end-to-end fleet management, intelligent trip dispatching, maintenance automation, and financial analytics platform built with **Spring Boot 3**, **Spring Security 6 (JWT + RBAC)**, **React 18**, and **MySQL 8**.
 
 </div>
 
@@ -116,7 +117,7 @@ In the modern logistics and transportation industry, managing fleet assets with 
                                         |  Hibernate / JDBC
                                         v
 +-----------------------------------------------------------------------------------+
-|                        DATABASE LAYER (PostgreSQL / MySQL)                        |
+|                        DATABASE LAYER (MySQL 8 / PostgreSQL)                      |
 |   [Users] [Vehicles] [Drivers] [Trips] [MaintenanceLogs] [FuelLogs] [Expenses]    |
 +-----------------------------------------------------------------------------------+
 ```
@@ -124,8 +125,8 @@ In the modern logistics and transportation industry, managing fleet assets with 
 ### Stack Highlights:
 - **Frontend:** React 18, Vite, React Router v6, Axios, Bootstrap 5 + Custom High-Contrast Dark Theme (`#0F1115`).
 - **Backend:** Java 21, Spring Boot 3.x, Spring MVC, Spring Data JPA, Jakarta Validation, Lombok.
-- **Security:** Spring Security 6, Stateless JWT (JSON Web Tokens), BCrypt Password Hashing.
-- **Database:** PostgreSQL / MySQL Relational Schema.
+- **Security:** Spring Security 6, Stateless JWT (JSON Web Tokens) Authentication Filter, Role-Based Access Control (RBAC), BCrypt Password Hashing.
+- **Database:** MySQL 8.0+ Relational Schema (compatible with PostgreSQL).
 
 ---
 
@@ -166,18 +167,18 @@ TransitOps/
 ### Prerequisites
 - **Node.js:** v18.0.0 or higher
 - **Java JDK:** v21 or higher
-- **Database:** PostgreSQL (or MySQL 8.x)
+- **Database:** MySQL 8.0+ (or PostgreSQL)
 
 ### 1️⃣ Database Setup
-Create a PostgreSQL or MySQL database named `transitops`:
+Create a MySQL database named `transitops`:
 ```sql
-CREATE DATABASE transitops;
+CREATE DATABASE IF NOT EXISTS transitops;
 ```
 Configure your database connection in `backend/Transit_Backend/src/main/resources/application.properties`:
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/transitops
-spring.datasource.username=postgres
-spring.datasource.password=your_password
+spring.datasource.url=jdbc:mysql://localhost:3306/transitops?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=your_mysql_password
 spring.jpa.hibernate.ddl-auto=update
 ```
 
