@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/Maintenance.css';
+import ComingSoonModal from '../components/ComingSoonModal';
 
 const Maintenance = () => {
     const [isLoading, setIsLoading] = useState(true);
+    const [comingSoonModule, setComingSoonModule] = useState(null);
     const [vehicles, setVehicles] = useState([]);
     const [maintenanceLogs, setMaintenanceLogs] = useState([]);
 
@@ -19,21 +21,60 @@ const Maintenance = () => {
     const navItems = ['Dashboard', 'Fleet', 'Drivers', 'Trips', 'Maintenance', 'Fuel & Expenses', 'Analytics', 'Settings'];
 
     useEffect(() => {
-        setTimeout(() => {
-            setVehicles([
-                { id: 'V01', make: 'VAN-05', reg: 'GJ01AB452' },
-                { id: 'V02', make: 'TRUCK-11', reg: 'GJ01AB998' },
-                { id: 'V03', make: 'MINI-03', reg: 'GJ01AB1120' }
-            ]);
+        const fetchVehiclesAndLogs = async () => {
+            const localLogs = JSON.parse(localStorage.getItem('live_maintenance_logs') || '[]');
+            try {
+                const [vRes, mRes] = await Promise.all([
+                    fetch('http://localhost:8080/api/vehicles'),
+                    fetch('http://localhost:8080/api/maintenance')
+                ]);
+                if (vRes.ok) {
+                    const vData = await vRes.json();
+                    setVehicles(vData.map(v => ({ id: String(v.id), make: v.model || 'Vehicle', reg: v.registrationNumber || '' })));
+                    if (mRes.ok) {
+                        const mData = await mRes.json();
+                        setMaintenanceLogs([
+                            ...localLogs,
+                            ...mData.map(m => ({
+                                id: `M-${m.id}`,
+                                vehicleReg: m.vehicle ? m.vehicle.registrationNumber : 'KA-01-EQ-1001',
+                                type: m.description || 'General Maintenance',
+                                cost: m.cost || 0,
+                                date: m.startDate ? m.startDate.split('T')[0] : '2026-07-12',
+                                status: m.status === 'OPEN' ? 'In Shop' : 'Completed',
+                                badge: m.status === 'OPEN' ? 'bg-warning text-dark' : 'bg-success'
+                            }))
+                        ]);
+                    } else {
+                        setMaintenanceLogs([
+                            ...localLogs,
+                            { id: 'M-1042', vehicleReg: 'GJ01AB1120', type: 'Engine Repair', cost: 45000, date: '2026-07-12', status: 'In Shop', badge: 'bg-warning text-dark' }
+                        ]);
+                    }
+                    setIsLoading(false);
+                    return;
+                }
+            } catch (ignored) {}
 
-            setMaintenanceLogs([
-                { id: 'M-1042', vehicleReg: 'GJ01AB1120', type: 'Engine Repair', cost: 45000, date: '2026-07-12', status: 'In Shop', badge: 'bg-warning text-dark' },
-                { id: 'M-1041', vehicleReg: 'GJ01AB452', type: 'Oil Change', cost: 3500, date: '2026-07-10', status: 'Completed', badge: 'bg-success' },
-                { id: 'M-1039', vehicleReg: 'GJ01AB998', type: 'Tire Replacement', cost: 12000, date: '2026-07-05', status: 'Completed', badge: 'bg-success' }
-            ]);
+            setTimeout(() => {
+                setVehicles([
+                    { id: 'V01', make: 'VAN-05', reg: 'GJ01AB452' },
+                    { id: 'V02', make: 'TRUCK-11', reg: 'GJ01AB998' },
+                    { id: 'V03', make: 'MINI-03', reg: 'GJ01AB1120' }
+                ]);
 
-            setIsLoading(false);
-        }, 400);
+                setMaintenanceLogs([
+                    ...localLogs,
+                    { id: 'M-1042', vehicleReg: 'GJ01AB1120', type: 'Engine Repair', cost: 45000, date: '2026-07-12', status: 'In Shop', badge: 'bg-warning text-dark' },
+                    { id: 'M-1041', vehicleReg: 'GJ01AB452', type: 'Oil Change', cost: 3500, date: '2026-07-10', status: 'Completed', badge: 'bg-success' },
+                    { id: 'M-1039', vehicleReg: 'GJ01AB998', type: 'Tire Replacement', cost: 12000, date: '2026-07-05', status: 'Completed', badge: 'bg-success' }
+                ]);
+
+                setIsLoading(false);
+            }, 400);
+        };
+
+        fetchVehiclesAndLogs();
     }, []);
 
     const handleInputChange = (e) => {
@@ -41,24 +82,41 @@ const Maintenance = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         const selectedVehicle = vehicles.find(v => v.id === formData.vehicleId);
         if (!selectedVehicle) return;
 
         const newLog = {
-            id: `M-${Math.floor(Math.random() * 10000) + 2000}`, // Mock ID
+            id: `M-${Math.floor(Math.random() * 10000) + 2000}`,
             vehicleReg: selectedVehicle.reg,
-            type: formData.serviceType,
+            type: formData.serviceType || 'Routine Maintenance',
             cost: parseInt(formData.cost) || 0,
-            date: new Date().toISOString().split('T')[0], // Today's Date
-            status: formData.status,
-            badge: formData.status === 'In Shop' ? 'bg-warning text-dark' : 'bg-info'
+            date: new Date().toISOString().split('T')[0],
+            status: formData.status || 'In Shop',
+            badge: (formData.status === 'In Shop' || !formData.status) ? 'bg-warning text-dark' : 'bg-success'
         };
 
-        setMaintenanceLogs([newLog, ...maintenanceLogs]);
+        const existingLogs = JSON.parse(localStorage.getItem('live_maintenance_logs') || '[]');
+        localStorage.setItem('live_maintenance_logs', JSON.stringify([newLog, ...existingLogs]));
+        localStorage.setItem(`live_veh_status_${selectedVehicle.reg}`, 'In Shop');
 
+        try {
+            await fetch('http://localhost:8080/api/maintenance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    vehicleId: Number(selectedVehicle.id) || 1,
+                    description: formData.serviceType || 'Routine Maintenance',
+                    cost: parseInt(formData.cost) || 0,
+                    maintenanceType: 'ROUTINE',
+                    status: 'OPEN'
+                })
+            });
+        } catch (ignored) {}
+
+        setMaintenanceLogs([newLog, ...maintenanceLogs]);
         setFormData({ vehicleId: '', serviceType: '', cost: '', notes: '', status: 'In Shop' });
     };
 
@@ -87,12 +145,23 @@ const Maintenance = () => {
                             if (item === 'Maintenance') path = "/maintenance";
 
                             const isActive = item === 'Maintenance';
+                            const isComingSoon = item === 'Fuel & Expenses' || item === 'Analytics' || item === 'Settings';
 
                             return (
                                 <li className="nav-item w-100" key={index}>
-                                    <Link to={path} className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}>
-                                        {item}
-                                    </Link>
+                                    {isComingSoon ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setComingSoonModule(item)}
+                                            className="nav-link px-4 py-2 text-secondary hover-nav bg-transparent border-0 w-100 text-start"
+                                        >
+                                            {item}
+                                        </button>
+                                    ) : (
+                                        <Link to={path} className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}>
+                                            {item}
+                                        </Link>
+                                    )}
                                 </li>
                             );
                         })}
@@ -215,6 +284,7 @@ const Maintenance = () => {
 
                 </div>
             </div>
+            <ComingSoonModal moduleName={comingSoonModule} onClose={() => setComingSoonModule(null)} />
         </div>
     );
 };

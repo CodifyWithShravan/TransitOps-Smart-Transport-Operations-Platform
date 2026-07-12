@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/Drivers.css';
+import ComingSoonModal from '../components/ComingSoonModal';
 
 const Drivers = () => {
     const [drivers, setDrivers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [comingSoonModule, setComingSoonModule] = useState(null);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
@@ -129,15 +131,26 @@ const Drivers = () => {
                             if (item === 'Maintenance') path = "/maintenance";
 
                             const isActive = item === 'Drivers';
+                            const isComingSoon = item === 'Fuel & Expenses' || item === 'Analytics' || item === 'Settings';
 
                             return (
                                 <li className="nav-item w-100" key={index}>
-                                    <Link
-                                        to={path}
-                                        className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}
-                                    >
-                                        {item}
-                                    </Link>
+                                    {isComingSoon ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setComingSoonModule(item)}
+                                            className="nav-link px-4 py-2 text-secondary hover-nav bg-transparent border-0 w-100 text-start"
+                                        >
+                                            {item}
+                                        </button>
+                                    ) : (
+                                        <Link
+                                            to={path}
+                                            className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}
+                                        >
+                                            {item}
+                                        </Link>
+                                    )}
                                 </li>
                             );
                         })}
@@ -261,6 +274,7 @@ const Drivers = () => {
 
                 </div>
             </div>
+            <ComingSoonModal moduleName={comingSoonModule} onClose={() => setComingSoonModule(null)} />
         </div>
     );
 };

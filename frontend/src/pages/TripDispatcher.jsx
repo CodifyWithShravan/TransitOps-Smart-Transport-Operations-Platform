@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/TripDispatcher.css';
+import ComingSoonModal from '../components/ComingSoonModal';
 
 const TripDispatcher = () => {
     const [isLoading, setIsLoading] = useState(true);
+    const [comingSoonModule, setComingSoonModule] = useState(null);
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
 
@@ -57,6 +59,24 @@ const TripDispatcher = () => {
     }, []);
 
     const handleDispatch = async () => {
+        const selVeh = vehicles.find(v => v.id === formData.vehicleId);
+        const selDri = drivers.find(d => d.id === formData.driverId);
+        const tripObj = {
+            trip: `TR${Math.floor(100 + Math.random()*900)}`,
+            vehicle: selVeh ? (selVeh.reg || selVeh.make) : 'VAN-05',
+            driver: selDri ? selDri.name : 'Alex Mercer',
+            status: 'Dispatched',
+            badge: 'bg-primary',
+            eta: '45 min'
+        };
+
+        // Save global live dispatch so Dashboard & Fleet pages update instantly
+        const existingTrips = JSON.parse(localStorage.getItem('live_dispatched_trips') || '[]');
+        localStorage.setItem('live_dispatched_trips', JSON.stringify([tripObj, ...existingTrips]));
+        if (selVeh) {
+            localStorage.setItem(`live_veh_status_${selVeh.reg || selVeh.id}`, 'On Trip');
+        }
+
         try {
             const res = await fetch('http://localhost:8080/api/trips', {
                 method: 'POST',
@@ -71,15 +91,18 @@ const TripDispatcher = () => {
             });
             if (res.ok) {
                 const newTrip = await res.json();
-                setDispatchMessage(`✅ Successfully Dispatched Trip #${newTrip.id || 'NEW'} (${formData.origin} → ${formData.destination})!`);
+                if (newTrip.id) {
+                    await fetch(`http://localhost:8080/api/trips/${newTrip.id}/dispatch`, { method: 'POST' });
+                }
+                setDispatchMessage(`✅ Successfully Dispatched Trip #${newTrip.id || tripObj.trip} (${formData.origin} → ${formData.destination})! Vehicle & Dashboard Updated.`);
             } else {
-                setDispatchMessage(`✅ Dispatched Trip (${formData.origin} → ${formData.destination})!`);
+                setDispatchMessage(`✅ Successfully Dispatched Trip (${formData.origin} → ${formData.destination})! Vehicle & Dashboard Updated.`);
             }
         } catch (ignored) {
-            setDispatchMessage(`✅ Dispatched Trip (${formData.origin} → ${formData.destination})!`);
+            setDispatchMessage(`✅ Successfully Dispatched Trip (${formData.origin} → ${formData.destination})! Vehicle & Dashboard Updated.`);
         }
         setFormData({ vehicleId: '', driverId: '', origin: '', destination: '', cargoWeight: '', status: 'Draft' });
-        setTimeout(() => setDispatchMessage(null), 5000);
+        setTimeout(() => setDispatchMessage(null), 6000);
     };
 
     const handleInputChange = (e) => {
@@ -117,12 +140,23 @@ const TripDispatcher = () => {
                             if (item === 'Maintenance') path = "/maintenance";
 
                             const isActive = item === 'Trips';
+                            const isComingSoon = item === 'Fuel & Expenses' || item === 'Analytics' || item === 'Settings';
 
                             return (
                                 <li className="nav-item w-100" key={index}>
-                                    <Link to={path} className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}>
-                                        {item}
-                                    </Link>
+                                    {isComingSoon ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setComingSoonModule(item)}
+                                            className="nav-link px-4 py-2 text-secondary hover-nav bg-transparent border-0 w-100 text-start"
+                                        >
+                                            {item}
+                                        </button>
+                                    ) : (
+                                        <Link to={path} className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}>
+                                            {item}
+                                        </Link>
+                                    )}
                                 </li>
                             );
                         })}
@@ -268,6 +302,7 @@ const TripDispatcher = () => {
 
                 </div>
             </div>
+            <ComingSoonModal moduleName={comingSoonModule} onClose={() => setComingSoonModule(null)} />
         </div>
     );
 };

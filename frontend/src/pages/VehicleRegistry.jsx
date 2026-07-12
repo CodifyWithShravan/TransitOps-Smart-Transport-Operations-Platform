@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/VehicleRegistry.css';
 import { Link } from 'react-router-dom';
+import ComingSoonModal from '../components/ComingSoonModal';
 
 const VehicleRegistry = () => {
     const [vehicles, setVehicles] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [comingSoonModule, setComingSoonModule] = useState(null);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState('All');
@@ -138,15 +140,26 @@ const VehicleRegistry = () => {
                             if (item === 'Trips') path = "/trips";
                             if (item === 'Maintenance') path = "/maintenance";
                             const isActive = item === 'Fleet';
+                            const isComingSoon = item === 'Fuel & Expenses' || item === 'Analytics' || item === 'Settings';
 
                             return (
                                 <li className="nav-item w-100" key={index}>
-                                    <Link
-                                        to={path}
-                                        className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}
-                                    >
-                                        {item}
-                                    </Link>
+                                    {isComingSoon ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setComingSoonModule(item)}
+                                            className="nav-link px-4 py-2 text-secondary hover-nav bg-transparent border-0 w-100 text-start"
+                                        >
+                                            {item}
+                                        </button>
+                                    ) : (
+                                        <Link
+                                            to={path}
+                                            className={`nav-link px-4 py-2 ${isActive ? 'active-nav-item' : 'text-secondary hover-nav'}`}
+                                        >
+                                            {item}
+                                        </Link>
+                                    )}
                                 </li>
                             );
                         })}
@@ -205,12 +218,12 @@ const VehicleRegistry = () => {
 
                     {showAddForm && (
                         <div className="card bg-dark border border-secondary p-3 mb-4 rounded-3 text-light">
-                            <form onSubmit={handleAddVehicle} className="row g-3 align-items-end">
+                            <form onSubmit={handleAddVehicle} className="row g-2 align-items-end">
                                 <div className="col-md-3">
                                     <label className="form-label small text-secondary">Reg Number</label>
                                     <input type="text" className="form-control form-control-sm" placeholder="e.g. MH-12-AB-9999" value={newVehicle.regNo} onChange={e => setNewVehicle({...newVehicle, regNo: e.target.value})} required />
                                 </div>
-                                <div className="col-md-3">
+                                <div className="col-md-2">
                                     <label className="form-label small text-secondary">Make / Model</label>
                                     <input type="text" className="form-control form-control-sm" placeholder="e.g. Volvo FH16" value={newVehicle.makeModel} onChange={e => setNewVehicle({...newVehicle, makeModel: e.target.value})} required />
                                 </div>
@@ -223,11 +236,15 @@ const VehicleRegistry = () => {
                                     </select>
                                 </div>
                                 <div className="col-md-2">
-                                    <label className="form-label small text-secondary">Capacity</label>
-                                    <input type="text" className="form-control form-control-sm" placeholder="5000 kg" value={newVehicle.capacity} onChange={e => setNewVehicle({...newVehicle, capacity: e.target.value})} />
+                                    <label className="form-label small text-secondary">Capacity (kg)</label>
+                                    <input type="text" className="form-control form-control-sm" placeholder="5000" value={newVehicle.capacity} onChange={e => setNewVehicle({...newVehicle, capacity: e.target.value})} />
                                 </div>
                                 <div className="col-md-2">
-                                    <button type="submit" className="btn btn-success btn-sm w-100 fw-bold">Save Vehicle</button>
+                                    <label className="form-label small text-secondary">Acq. Cost (₹)</label>
+                                    <input type="number" className="form-control form-control-sm" placeholder="1500000" value={newVehicle.cost} onChange={e => setNewVehicle({...newVehicle, cost: e.target.value})} />
+                                </div>
+                                <div className="col-md-1">
+                                    <button type="submit" className="btn btn-success btn-sm w-100 fw-bold">Save</button>
                                 </div>
                             </form>
                         </div>
@@ -248,21 +265,26 @@ const VehicleRegistry = () => {
                             </thead>
                             <tbody>
                                 {filteredVehicles.length > 0 ? (
-                                    filteredVehicles.map((vehicle, idx) => (
-                                        <tr key={idx}>
-                                            <td className="fw-semibold">{vehicle.regNo}</td>
-                                            <td>{vehicle.makeModel}</td>
-                                            <td className="text-secondary">{vehicle.type}</td>
-                                            <td className="text-secondary">{vehicle.capacity}</td>
-                                            <td>{vehicle.odometer}</td>
-                                            <td>{vehicle.cost}</td>
-                                            <td>
-                                                <span className={`badge ${vehicle.badge} px-3 py-2 w-75 rounded`} style={{ minWidth: '90px' }}>
-                                                    {vehicle.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    filteredVehicles.map((vehicle, idx) => {
+                                        const liveStatus = localStorage.getItem(`live_veh_status_${vehicle.regNo}`);
+                                        const displayStatus = liveStatus || vehicle.status;
+                                        const badgeColor = displayStatus === 'On Trip' ? 'bg-primary' : (displayStatus === 'In Shop' ? 'bg-warning text-dark' : vehicle.badge);
+                                        return (
+                                            <tr key={idx}>
+                                                <td className="fw-semibold">{vehicle.regNo}</td>
+                                                <td>{vehicle.makeModel}</td>
+                                                <td className="text-secondary">{vehicle.type}</td>
+                                                <td className="text-secondary">{vehicle.capacity}</td>
+                                                <td>{vehicle.odometer}</td>
+                                                <td>{vehicle.cost}</td>
+                                                <td>
+                                                    <span className={`badge ${badgeColor} px-3 py-2 w-75 rounded`} style={{ minWidth: '90px' }}>
+                                                        {displayStatus}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan="7" className="text-center py-5 text-muted">
@@ -282,6 +304,7 @@ const VehicleRegistry = () => {
 
                 </div>
             </div>
+            <ComingSoonModal moduleName={comingSoonModule} onClose={() => setComingSoonModule(null)} />
         </div>
     );
 };
