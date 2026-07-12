@@ -29,4 +29,9 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
      * Useful for listing available vehicles during trip creation.
      */
     List<Vehicle> findByStatus(VehicleStatus status);
+
+    /**
+     * Count vehicles by operational status. Used for dashboard KPIs.
+     */
+    long countByStatus(VehicleStatus status);
 }
