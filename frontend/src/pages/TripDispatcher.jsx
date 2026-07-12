@@ -77,6 +77,15 @@ const TripDispatcher = () => {
         }
     };
 
+    const handleDispatchTrip = async (tripId) => {
+        try {
+            await tripApi.dispatch(tripId);
+            fetchDropdowns();
+        } catch (error) {
+            alert(`Failed to dispatch trip: ${error.message}`);
+        }
+    };
+
     const handleCompleteTrip = async (tripId) => {
         try {
             await tripApi.complete(tripId);
@@ -254,19 +263,27 @@ const TripDispatcher = () => {
                                                 <tr key={idx}>
                                                     <td className="fw-bold text-info">TR-{trip.id}</td>
                                                     <td>
-                                                        <small className="text-light">{trip.origin}</small>
+                                                        <small className="text-light">{trip.source || trip.origin || 'N/A'}</small>
                                                         <span className="text-primary mx-1">→</span>
-                                                        <small className="text-light">{trip.destination}</small>
+                                                        <small className="text-light">{trip.destination || 'N/A'}</small>
                                                     </td>
-                                                    <td><span className="badge bg-secondary">{trip.vehicle?.model || `Vehicle #${trip.vehicleId}`}</span></td>
-                                                    <td className="text-light small">{trip.driver?.name || `Driver #${trip.driverId}`}</td>
+                                                    <td><span className="badge bg-secondary">{trip.vehicleModel || trip.vehicle?.model || `Vehicle #${trip.vehicleId}`}</span></td>
+                                                    <td className="text-light small">{trip.driverName || trip.driver?.name || `Driver #${trip.driverId}`}</td>
                                                     <td>
-                                                        <span className={`badge ${trip.status === 'DISPATCHED' ? 'bg-info text-dark' : 'bg-success'} px-2 py-1 rounded-pill fw-bold`} style={{ fontSize: '11px' }}>
-                                                            {trip.status === 'DISPATCHED' ? '🚚 In Transit' : (trip.status === 'COMPLETED' ? '✅ Done' : trip.status)}
+                                                        <span className={`badge ${trip.status === 'DISPATCHED' ? 'bg-info text-dark' : (trip.status === 'DRAFT' ? 'bg-warning text-dark' : 'bg-success')} px-2 py-1 rounded-pill fw-bold`} style={{ fontSize: '11px' }}>
+                                                            {trip.status === 'DISPATCHED' ? '🚚 In Transit' : (trip.status === 'COMPLETED' ? '✅ Done' : '📝 Draft')}
                                                         </span>
                                                     </td>
                                                     <td className="text-end">
-                                                        {trip.status === 'DISPATCHED' ? (
+                                                        {trip.status === 'DRAFT' ? (
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-sm btn-info text-dark fw-bold"
+                                                                onClick={() => handleDispatchTrip(trip.id)}
+                                                            >
+                                                                🚀 Dispatch Now
+                                                            </button>
+                                                        ) : trip.status === 'DISPATCHED' ? (
                                                             <button
                                                                 type="button"
                                                                 className="btn btn-sm btn-outline-success fw-bold"

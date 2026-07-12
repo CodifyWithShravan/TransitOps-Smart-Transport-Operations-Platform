@@ -86,9 +86,9 @@ export const tripApi = {
   getAll: (status) =>
     apiClient.get(status && status !== 'All' ? `/trips?status=${status}` : '/trips'),
   create: (tripData) => apiClient.post('/trips', tripData),
-  dispatch: (id) => apiClient.post(`/trips/${id}/dispatch`),
-  complete: (id) => apiClient.post(`/trips/${id}/complete`),
-  cancel: (id) => apiClient.post(`/trips/${id}/cancel`),
+  dispatch: (id) => apiClient.patch(`/trips/${id}/dispatch`),
+  complete: (id) => apiClient.patch(`/trips/${id}/complete`),
+  cancel: (id) => apiClient.patch(`/trips/${id}/cancel`),
 };
 
 // ==========================================
