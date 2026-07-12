@@ -31,17 +31,16 @@ const Drivers = () => {
                     setIsLoading(false);
                     return;
                 }
-            } catch (ignored) {}
+            } catch (ignored) { }
 
-            setTimeout(() => {
-                setDrivers([
-                    { id: 'D001', name: 'Alex Mercer', license: 'DL-99382', expiry: '2027-05-12', incidents: 0, status: 'Active', badge: 'bg-success' },
-                    { id: 'D002', name: 'Priya Sharma', license: 'DL-44102', expiry: '2024-11-03', incidents: 1, status: 'Active', badge: 'bg-success' },
-                    { id: 'D003', name: 'John Doe', license: 'DL-11094', expiry: '2025-01-20', incidents: 3, status: 'Suspended', badge: 'bg-danger' },
-                    { id: 'D004', name: 'Sarah Connor', license: 'DL-88210', expiry: '2026-08-15', incidents: 0, status: 'On Leave', badge: 'bg-secondary' },
-                ]);
-                setIsLoading(false);
-            }, 500);
+
+            setDrivers([
+                { id: 'D001', name: 'Alex Mercer', license: 'DL-99382', expiry: '2027-05-12', incidents: 0, status: 'Active', badge: 'bg-success' },
+                { id: 'D002', name: 'Priya Sharma', license: 'DL-44102', expiry: '2024-11-03', incidents: 1, status: 'Active', badge: 'bg-success' },
+                { id: 'D003', name: 'John Doe', license: 'DL-11094', expiry: '2025-01-20', incidents: 3, status: 'Suspended', badge: 'bg-danger' },
+                { id: 'D004', name: 'Sarah Connor', license: 'DL-88210', expiry: '2026-08-15', incidents: 0, status: 'On Leave', badge: 'bg-secondary' },
+            ]);
+            setIsLoading(false);
         };
 
         fetchDrivers();
@@ -78,6 +77,7 @@ const Drivers = () => {
                             if (item === 'Drivers') path = "/drivers";
                             if (item === 'Trips') path = "/trips";
                             if (item === 'Maintenance') path = "/maintenance";
+                            if (item === 'Fuel & Expenses') path = "/fuel";
 
                             const isActive = item === 'Drivers';
 

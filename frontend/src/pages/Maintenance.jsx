@@ -19,21 +19,19 @@ const Maintenance = () => {
     const navItems = ['Dashboard', 'Fleet', 'Drivers', 'Trips', 'Maintenance', 'Fuel & Expenses', 'Analytics', 'Settings'];
 
     useEffect(() => {
-        setTimeout(() => {
-            setVehicles([
-                { id: 'V01', make: 'VAN-05', reg: 'GJ01AB452' },
-                { id: 'V02', make: 'TRUCK-11', reg: 'GJ01AB998' },
-                { id: 'V03', make: 'MINI-03', reg: 'GJ01AB1120' }
-            ]);
+        setVehicles([
+            { id: 'V01', make: 'VAN-05', reg: 'GJ01AB452' },
+            { id: 'V02', make: 'TRUCK-11', reg: 'GJ01AB998' },
+            { id: 'V03', make: 'MINI-03', reg: 'GJ01AB1120' }
+        ]);
 
-            setMaintenanceLogs([
-                { id: 'M-1042', vehicleReg: 'GJ01AB1120', type: 'Engine Repair', cost: 45000, date: '2026-07-12', status: 'In Shop', badge: 'bg-warning text-dark' },
-                { id: 'M-1041', vehicleReg: 'GJ01AB452', type: 'Oil Change', cost: 3500, date: '2026-07-10', status: 'Completed', badge: 'bg-success' },
-                { id: 'M-1039', vehicleReg: 'GJ01AB998', type: 'Tire Replacement', cost: 12000, date: '2026-07-05', status: 'Completed', badge: 'bg-success' }
-            ]);
+        setMaintenanceLogs([
+            { id: 'M-1042', vehicleReg: 'GJ01AB1120', type: 'Engine Repair', cost: 45000, date: '2026-07-12', status: 'In Shop', badge: 'bg-warning text-dark' },
+            { id: 'M-1041', vehicleReg: 'GJ01AB452', type: 'Oil Change', cost: 3500, date: '2026-07-10', status: 'Completed', badge: 'bg-success' },
+            { id: 'M-1039', vehicleReg: 'GJ01AB998', type: 'Tire Replacement', cost: 12000, date: '2026-07-05', status: 'Completed', badge: 'bg-success' }
+        ]);
 
-            setIsLoading(false);
-        }, 400);
+        setIsLoading(false);
     }, []);
 
     const handleInputChange = (e) => {
@@ -85,6 +83,7 @@ const Maintenance = () => {
                             if (item === 'Drivers') path = "/drivers";
                             if (item === 'Trips') path = "/trips";
                             if (item === 'Maintenance') path = "/maintenance";
+                            if (item === 'Fuel & Expenses') path = "/fuel";
 
                             const isActive = item === 'Maintenance';
 

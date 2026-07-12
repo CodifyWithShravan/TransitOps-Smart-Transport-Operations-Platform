@@ -39,31 +39,28 @@ const Dashboard = () => {
                     return;
                 }
             } catch (ignored) {
-                // Backend server not running — fall back gracefully
             }
 
-            setTimeout(() => {
-                setData({
-                    stats: [
-                        { title: 'ACTIVE VEHICLES', value: '53', color: 'primary' },
-                        { title: 'AVAILABLE VEHICLES', value: '42', color: 'success' },
-                        { title: 'VEHICLES IN MAINT.', value: '05', color: 'warning' },
-                        { title: 'ACTIVE TRIPS', value: '18', color: 'info' },
-                        { title: 'FLEET UTILIZATION', value: '81%', color: 'success' }
-                    ],
-                    recentTrips: [
-                        { trip: 'TR001', vehicle: 'VAN-05', driver: 'Alex', status: 'On Trip', badge: 'bg-primary', eta: '45 min' },
-                        { trip: 'TR002', vehicle: 'TRK-12', driver: 'John', status: 'Completed', badge: 'bg-success', eta: '—' },
-                        { trip: 'TR003', vehicle: 'MINI-08', driver: 'Priya', status: 'Dispatched', badge: 'bg-info', eta: '1h 10m' },
-                    ],
-                    vehicleStatuses: [
-                        { label: 'Available', percent: 70, color: 'bg-success' },
-                        { label: 'On Trip', percent: 30, color: 'bg-primary' },
-                        { label: 'In Shop', percent: 10, color: 'bg-warning' },
-                    ]
-                });
-                setIsLoading(false);
-            }, 500);
+            setData({
+                stats: [
+                    { title: 'ACTIVE VEHICLES', value: '53', color: 'primary' },
+                    { title: 'AVAILABLE VEHICLES', value: '42', color: 'success' },
+                    { title: 'VEHICLES IN MAINT.', value: '05', color: 'warning' },
+                    { title: 'ACTIVE TRIPS', value: '18', color: 'info' },
+                    { title: 'FLEET UTILIZATION', value: '81%', color: 'success' }
+                ],
+                recentTrips: [
+                    { trip: 'TR001', vehicle: 'VAN-05', driver: 'Alex', status: 'On Trip', badge: 'bg-primary', eta: '45 min' },
+                    { trip: 'TR002', vehicle: 'TRK-12', driver: 'John', status: 'Completed', badge: 'bg-success', eta: '—' },
+                    { trip: 'TR003', vehicle: 'MINI-08', driver: 'Priya', status: 'Dispatched', badge: 'bg-info', eta: '1h 10m' },
+                ],
+                vehicleStatuses: [
+                    { label: 'Available', percent: 70, color: 'bg-success' },
+                    { label: 'On Trip', percent: 30, color: 'bg-primary' },
+                    { label: 'In Shop', percent: 10, color: 'bg-warning' },
+                ]
+            });
+            setIsLoading(false);
         };
 
         fetchDashboardData();
@@ -102,6 +99,7 @@ const Dashboard = () => {
                             if (item === 'Drivers') path = "/drivers";
                             if (item === 'Trips') path = "/trips";
                             if (item === 'Maintenance') path = "/maintenance";
+                            if (item === 'Fuel & Expenses') path = "/fuel";
 
                             const isActive = item === 'Dashboard';
 

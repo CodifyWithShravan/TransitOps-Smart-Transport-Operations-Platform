@@ -20,19 +20,17 @@ const TripDispatcher = () => {
     const navItems = ['Dashboard', 'Fleet', 'Drivers', 'Trips', 'Maintenance', 'Fuel & Expenses', 'Analytics', 'Settings'];
 
     useEffect(() => {
-        setTimeout(() => {
-            setVehicles([
-                { id: 'V01', make: 'VAN-05', capacity: 500, reg: 'GJ01AB452' },
-                { id: 'V02', make: 'TRUCK-11', capacity: 5000, reg: 'GJ01AB998' },
-                { id: 'V03', make: 'MINI-03', capacity: 1000, reg: 'GJ01AB1120' }
-            ]);
-            setDrivers([
-                { id: 'D01', name: 'Alex Mercer' },
-                { id: 'D02', name: 'Priya Sharma' },
-                { id: 'D04', name: 'Sarah Connor' }
-            ]);
-            setIsLoading(false);
-        }, 400);
+        setVehicles([
+            { id: 'V01', make: 'VAN-05', capacity: 500, reg: 'GJ01AB452' },
+            { id: 'V02', make: 'TRUCK-11', capacity: 5000, reg: 'GJ01AB998' },
+            { id: 'V03', make: 'MINI-03', capacity: 1000, reg: 'GJ01AB1120' }
+        ]);
+        setDrivers([
+            { id: 'D01', name: 'Alex Mercer' },
+            { id: 'D02', name: 'Priya Sharma' },
+            { id: 'D04', name: 'Sarah Connor' }
+        ]);
+        setIsLoading(false);
     }, []);
 
     const handleInputChange = (e) => {
@@ -68,6 +66,8 @@ const TripDispatcher = () => {
                             if (item === 'Drivers') path = "/drivers";
                             if (item === 'Trips') path = "/trips";
                             if (item === 'Maintenance') path = "/maintenance";
+                            if (item === 'Fuel & Expenses') path = "/fuel";
+
 
                             const isActive = item === 'Trips';
 
