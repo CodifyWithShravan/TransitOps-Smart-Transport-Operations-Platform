@@ -1,0 +1,203 @@
+.dashboardContainer {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background-color: #0c0c0c;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+}
+
+/* --- Sidebar Styling --- */
+.sidebar {
+  width: 240px;
+  background-color: #111111;
+  border-right: 1px solid #222;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  box-sizing: border-box;
+}
+
+.brand {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #fff;
+  padding-bottom: 10px;
+}
+
+.navMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.navItem {
+  padding: 12px 16px;
+  border-radius: 6px;
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.activeNavItem {
+  color: #fff;
+  border: 1px solid #9c621f;
+  background-color: rgba(156, 98, 31, 0.05);
+}
+
+/* --- Content Panel Area --- */
+.mainContent {
+  flex: 1;
+  padding: 24px 40px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  box-sizing: border-box;
+}
+
+.topHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #222;
+  padding-bottom: 16px;
+}
+
+.searchBar {
+  background-color: #141414;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #fff;
+  padding: 8px 16px;
+  width: 300px;
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userName {
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.userBadge {
+  font-size: 0.75rem;
+  background-color: #1e293b;
+  color: #38bdf8;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.pageTitle {
+  font-size: 1.6rem;
+  font-weight: 500;
+  margin: 0;
+  color: #fff;
+}
+
+/* --- Dual Columns Layout --- */
+.settingsLayout {
+  display: flex;
+  gap: 60px;
+  margin-top: 10px;
+}
+
+.formSection {
+  width: 380px;
+}
+
+.matrixSection {
+  flex: 1;
+}
+
+.sectionTitle {
+  font-size: 0.85rem;
+  color: #666;
+  letter-spacing: 1px;
+  margin-bottom: 25px;
+  font-weight: 600;
+}
+
+/* --- Input Form Elements --- */
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.inputGroup label {
+  font-size: 0.7rem;
+  color: #666;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.inputGroup input {
+  background-color: #141414;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  color: #ccc;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.inputGroup input:focus {
+  border-color: #9c621f;
+}
+
+.saveBtn {
+  background-color: #5284be;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: opacity 0.2s;
+}
+
+.saveBtn:hover {
+  opacity: 0.9;
+}
+
+/* --- RBAC Matrix Table Elements --- */
+.matrixTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.matrixTable th {
+  color: #555;
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+  padding: 12px 0;
+  border-bottom: 1px solid #222;
+  font-weight: 600;
+}
+
+.matrixTable td {
+  padding: 16px 0;
+  border-bottom: 1px solid #161616;
+  color: #888;
+}
+
+.matrixTable .roleName {
+  color: #ccc;
+}
+
+/* Visual emphasize checkmarks */
+.matrixTable .check {
+  color: #e0e0e0;
+  font-weight: bold;
+}
