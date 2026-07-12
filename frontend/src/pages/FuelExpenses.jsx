@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import TopHeader from '../components/TopHeader';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/FuelExpenses.css';
 
@@ -95,13 +96,7 @@ const FuelExpenses = () => {
 
                 <div className="col-md-10 p-4">
 
-                    <div className="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
-                        <h5 className="mb-0 text-white">Fuel & Expenses</h5>
-                        <div className="d-flex align-items-center">
-                            <span className="me-3 text-secondary text-sm text-end">Raven K. <br /><small className="text-muted">Dispatcher</small></span>
-                            <div className="rounded-circle bg-secondary text-center rounded-avatar d-flex justify-content-center align-items-center">RK</div>
-                        </div>
-                    </div>
+                    <TopHeader title="Fuel & Expenses" />
 
                     <div className="row mb-5">
                         <div className="col-md-4">

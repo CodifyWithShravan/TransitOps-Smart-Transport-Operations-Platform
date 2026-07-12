@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/VehicleRegistry.css';
 import { Link } from 'react-router-dom';
 import ComingSoonModal from '../components/ComingSoonModal';
+import TopHeader from '../components/TopHeader';
 import { vehicleApi } from '../services/api';
 
 const VehicleRegistry = () => {
@@ -149,23 +150,11 @@ const VehicleRegistry = () => {
 
                 <div className="col-md-10 p-4">
 
-                    <div className="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
-                        <div className="w-50">
-                            <input
-                                type="text"
-                                className="form-control bg-transparent text-light border-secondary w-50"
-                                placeholder="Search Reg No. or Make..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        <div className="d-flex align-items-center">
-                            <span className="me-3 text-secondary text-sm text-end">Raven K. <br /><small className="text-muted">Dispatcher</small></span>
-                            <div className="rounded-circle bg-secondary text-center rounded-avatar d-flex justify-content-center align-items-center">
-                                RK
-                            </div>
-                        </div>
-                    </div>
+                    <TopHeader
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        searchPlaceholder="Search Reg No. or Make..."
+                    />
 
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <div className="d-flex gap-3">
