@@ -6,6 +6,8 @@ import Drivers from './pages/Drivers';
 import TripDispatcher from './pages/TripDispatcher';
 import Maintenance from './pages/Maintenance';
 import FuelExpenses from './pages/FuelExpenses';
+import Analytics from './pages/Analytics';
+import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
 
 const ProtectedRoute = ({ children }) => {
@@ -31,6 +33,8 @@ function App() {
         <Route path="/trips" element={<ProtectedRoute><TripDispatcher /></ProtectedRoute>} />
         <Route path="/maintenance" element={<ProtectedRoute><Maintenance /></ProtectedRoute>} />
         <Route path="/fuel" element={<ProtectedRoute><FuelExpenses /></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

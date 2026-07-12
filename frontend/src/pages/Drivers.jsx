@@ -97,9 +97,11 @@ const Drivers = () => {
                             if (item === 'Trips') path = "/trips";
                             if (item === 'Maintenance') path = "/maintenance";
                             if (item === 'Fuel & Expenses') path = "/fuel";
+                            if (item === 'Analytics') path = "/analytics";
+                            if (item === 'Settings') path = "/settings";
 
                             const isActive = item === 'Drivers';
-                            const isComingSoon = item === 'Fuel & Expenses' || item === 'Analytics' || item === 'Settings';
+                            const isComingSoon = false;
 
                             return (
                                 <li className="nav-item w-100" key={index}>

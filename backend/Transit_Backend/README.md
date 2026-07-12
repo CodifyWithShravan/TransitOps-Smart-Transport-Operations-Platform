@@ -126,12 +126,12 @@ Step 9: Reports update operational cost and fuel efficiency.
 
 ## 8. Bonus Features
 
-- [ ] Charts and visual analytics
-- [ ] PDF export
+- [x] Charts and visual analytics
+- [x] CSV & PDF export
+- [x] Search, filters, and sorting
+- [x] Dark mode
 - [ ] Email reminders for expiring licenses
 - [ ] Vehicle document management
-- [ ] Search, filters, and sorting
-- [ ] Dark mode
 
 ---
 

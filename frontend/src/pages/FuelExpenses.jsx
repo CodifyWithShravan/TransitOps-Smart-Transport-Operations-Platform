@@ -80,6 +80,8 @@ const FuelExpenses = () => {
                             if (item === 'Trips') path = "/trips";
                             if (item === 'Maintenance') path = "/maintenance";
                             if (item === 'Fuel & Expenses') path = "/fuel";
+                            if (item === 'Analytics') path = "/analytics";
+                            if (item === 'Settings') path = "/settings";
 
                             const isActive = item === 'Fuel & Expenses';
 
