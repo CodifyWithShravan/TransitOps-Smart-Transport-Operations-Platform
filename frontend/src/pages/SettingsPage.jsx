@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import styles from '/src/styles/SettingsPage.module.css';
+import { Link } from 'react-router-dom';
+import styles from '../styles/SettingsPage.module.css';
+import TopHeader from '../components/TopHeader';
 
 const SettingsPage = () => {
   const sidebarItems = [
@@ -28,7 +30,7 @@ const SettingsPage = () => {
 
   const handleSaveChanges = (e) => {
     e.preventDefault();
-    alert(`Backend Hook: Saving settings -> ${depotName}, ${currency}, ${distanceUnit}`);
+    alert(`Settings saved successfully: ${depotName}, ${currency}, ${distanceUnit}`);
   };
 
   return (
@@ -37,29 +39,33 @@ const SettingsPage = () => {
       <aside className={styles.sidebar}>
         <div className={styles.brand}>TransitOps</div>
         <nav className={styles.navMenu}>
-          {sidebarItems.map((item) => (
-            <div
-              key={item}
-              className={`${styles.navItem} ${item === 'Settings' ? styles.activeNavItem : ''}`}
-            >
-              {item}
-            </div>
-          ))}
+          {sidebarItems.map((item) => {
+            let path = "/";
+            if (item === 'Fleet') path = "/fleet";
+            if (item === 'Drivers') path = "/drivers";
+            if (item === 'Trips') path = "/trips";
+            if (item === 'Maintenance') path = "/maintenance";
+            if (item === 'Fuel & Expenses') path = "/fuel";
+            if (item === 'Analytics') path = "/analytics";
+            if (item === 'Settings') path = "/settings";
+
+            return (
+              <Link
+                key={item}
+                to={path}
+                className={`${styles.navItem} ${item === 'Settings' ? styles.activeNavItem : ''}`}
+                style={{ textDecoration: 'none', display: 'block' }}
+              >
+                {item}
+              </Link>
+            );
+          })}
         </nav>
       </aside>
 
       {/* MAIN CONTENT AREA */}
       <main className={styles.mainContent}>
-        {/* Top Header */}
-        <header className={styles.topHeader}>
-          <input type="text" placeholder="Search..." className={styles.searchBar} readOnly />
-          <div className={styles.userProfile}>
-            <span className={styles.userName}>Raven K.</span>
-            <span className={styles.userBadge}>Dispatcher</span>
-          </div>
-        </header>
-
-        <h1 className={styles.pageTitle}>Settings & RBAC</h1>
+        <TopHeader title="Settings & RBAC" />
 
         <div className={styles.settingsLayout}>
           {/* GENERAL SETTINGS FORM */}
