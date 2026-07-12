@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/TripDispatcher.css';
 import ComingSoonModal from '../components/ComingSoonModal';
+import { vehicleApi, driverApi, tripApi } from '../services/api';
 
 const TripDispatcher = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [comingSoonModule, setComingSoonModule] = useState(null);
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
-    const [activeTrips, setActiveTrips] = useState(() => JSON.parse(localStorage.getItem('active_trips_list') || '[]'));
+    const [activeTrips, setActiveTrips] = useState([]);
 
     const [formData, setFormData] = useState({
         vehicleId: '',
@@ -24,147 +25,64 @@ const TripDispatcher = () => {
 
     const [dispatchMessage, setDispatchMessage] = useState(null);
 
-    useEffect(() => {
-        const fetchDropdowns = async () => {
-            let vehicleList = [];
-            let driverList = [];
-
-            try {
-                const [vRes, dRes] = await Promise.all([
-                    fetch('http://localhost:8080/api/vehicles'),
-                    fetch('http://localhost:8080/api/drivers')
-                ]);
-                if (vRes.ok) {
-                    const vData = await vRes.json();
-                    vehicleList = vData.map(v => ({ id: String(v.id), make: v.model || 'Vehicle', capacity: v.maxLoadCapacity || 1000, reg: v.registrationNumber || '' }));
-                }
-                if (dRes.ok) {
-                    const dData = await dRes.json();
-                    driverList = dData.map(d => ({ id: String(d.id), name: d.name || 'Driver' }));
-                }
-            } catch (ignored) {}
-
-            // Merge shared vehicle registry (includes vehicles added via Fleet)
-            const localVehicles = JSON.parse(localStorage.getItem('shared_vehicle_registry') || '[]');
-            const existingRegs = new Set(vehicleList.map(v => v.reg));
-            localVehicles.forEach(lv => {
-                if (lv.reg && !existingRegs.has(lv.reg)) {
-                    vehicleList.push({ id: lv.id || lv.reg, make: lv.make, capacity: 1000, reg: lv.reg });
-                    existingRegs.add(lv.reg);
-                }
-            });
-
-            // Fallback defaults
-            if (vehicleList.length === 0) {
-                vehicleList = [
-                    { id: 'V01', make: 'VAN-05', capacity: 500, reg: 'GJ01AB452' },
-                    { id: 'V02', make: 'TRUCK-11', capacity: 5000, reg: 'GJ01AB998' },
-                    { id: 'V03', make: 'MINI-03', capacity: 1000, reg: 'GJ01AB1120' }
-                ];
-            }
-            if (driverList.length === 0) {
-                driverList = [
-                    { id: 'D01', name: 'Alex Mercer' },
-                    { id: 'D02', name: 'Priya Sharma' },
-                    { id: 'D04', name: 'Sarah Connor' }
-                ];
-            }
-
+    const fetchDropdowns = async () => {
+        try {
+            const [vData, dData, tData] = await Promise.all([
+                vehicleApi.getAll('AVAILABLE'),
+                driverApi.getAll('AVAILABLE'),
+                tripApi.getAll()
+            ]);
+            
+            const vehicleList = vData.map(v => ({ id: String(v.id), make: v.model || 'Vehicle', capacity: v.maxLoadCapacity || 1000, reg: v.registrationNumber || '' }));
+            const driverList = dData.map(d => ({ id: String(d.id), name: d.name || 'Driver' }));
+            
             setVehicles(vehicleList);
             setDrivers(driverList);
+            setActiveTrips(tData.sort((a,b) => b.id - a.id)); // sort newest first
+        } catch (error) {
+            console.error("Failed to load dispatcher data:", error);
+        } finally {
             setIsLoading(false);
-        };
+        }
+    };
 
+    useEffect(() => {
         fetchDropdowns();
     }, []);
 
     const handleDispatch = async () => {
-        const selVeh = vehicles.find(v => v.id === formData.vehicleId);
-        const selDri = drivers.find(d => d.id === formData.driverId);
-        const tripId = `TR${Math.floor(100 + Math.random() * 900)}`;
-
-        const vehRegId = selVeh ? (selVeh.reg || selVeh.id) : 'V01';
-
-        const tripObj = {
-            id: tripId,
-            vehicle: selVeh ? (selVeh.reg || selVeh.make) : 'VAN-05',
-            vehicleRegId: vehRegId,
-            vehicleId: formData.vehicleId,
-            vehicleMake: selVeh ? selVeh.make : '',
-            driver: selDri ? selDri.name : 'Alex Mercer',
-            driverId: formData.driverId,
-            origin: formData.origin || 'Warehouse A',
-            destination: formData.destination || 'Hub B',
-            cargo: formData.cargoWeight || '0',
-            status: 'In Transit',
-            dispatchedAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-        };
-
-        // Mark vehicle & driver as busy
-        if (selVeh) {
-            localStorage.setItem(`live_veh_status_${vehRegId}`, 'On Trip');
-        }
-        if (selDri) {
-            localStorage.setItem(`live_dri_status_${selDri.id}`, 'On Route');
-        }
-
-        // Save to dashboard's live trips
-        const existingTrips = JSON.parse(localStorage.getItem('live_dispatched_trips') || '[]');
-        localStorage.setItem('live_dispatched_trips', JSON.stringify([{
-            trip: tripId, vehicle: tripObj.vehicle, driver: tripObj.driver,
-            status: 'Dispatched', badge: 'bg-primary', eta: '45 min'
-        }, ...existingTrips]));
-
-        // Add to active trips list
-        const updatedTrips = [tripObj, ...activeTrips];
-        setActiveTrips(updatedTrips);
-        localStorage.setItem('active_trips_list', JSON.stringify(updatedTrips));
-
         try {
-            const res = await fetch('http://localhost:8080/api/trips', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    vehicleId: Number(formData.vehicleId) || 1,
-                    driverId: Number(formData.driverId) || 1,
-                    origin: formData.origin || 'Warehouse A',
-                    destination: formData.destination || 'Hub B',
-                    cargoWeightKg: Number(formData.cargoWeight) || 500
-                })
-            });
-            if (res.ok) {
-                const newTrip = await res.json();
-                if (newTrip.id) {
-                    await fetch(`http://localhost:8080/api/trips/${newTrip.id}/dispatch`, { method: 'POST' });
-                }
-            }
-        } catch (ignored) {}
+            const tripPayload = {
+                vehicleId: Number(formData.vehicleId),
+                driverId: Number(formData.driverId),
+                origin: formData.origin || 'Warehouse A',
+                destination: formData.destination || 'Hub B',
+                cargoWeightKg: Number(formData.cargoWeight) || 500
+            };
+            
+            // Backend should atomically create the trip and lock the vehicle and driver
+            const newTrip = await tripApi.create(tripPayload);
+            await tripApi.dispatch(newTrip.id);
 
-        setDispatchMessage(`✅ Trip ${tripId} dispatched! (${tripObj.origin} → ${tripObj.destination})`);
-        setFormData({ vehicleId: '', driverId: '', origin: '', destination: '', cargoWeight: '', status: 'Draft' });
-        setTimeout(() => setDispatchMessage(null), 4000);
+            setDispatchMessage(`✅ Trip #${newTrip.id} dispatched! (${newTrip.origin} → ${newTrip.destination})`);
+            setFormData({ vehicleId: '', driverId: '', origin: '', destination: '', cargoWeight: '', status: 'Draft' });
+            setTimeout(() => setDispatchMessage(null), 4000);
+            
+            // Refresh lists from backend to ensure data integrity
+            fetchDropdowns();
+        } catch (error) {
+            alert(`Failed to dispatch trip: ${error.message}`);
+        }
     };
 
-    const handleCompleteTrip = (tripId) => {
-        const trip = activeTrips.find(t => t.id === tripId);
-        if (!trip) return;
-
-        // Release vehicle
-        if (trip.vehicleRegId) {
-            localStorage.setItem(`live_veh_status_${trip.vehicleRegId}`, 'Available');
-        } else if (trip.vehicle) {
-            localStorage.setItem(`live_veh_status_${trip.vehicle}`, 'Available');
+    const handleCompleteTrip = async (tripId) => {
+        try {
+            await tripApi.complete(tripId);
+            // Refresh lists from backend
+            fetchDropdowns();
+        } catch (error) {
+            alert(`Failed to complete trip: ${error.message}`);
         }
-        // Release driver
-        if (trip.driverId) {
-            localStorage.setItem(`live_dri_status_${trip.driverId}`, 'Active');
-        }
-
-        const updatedTrips = activeTrips.map(t =>
-            t.id === tripId ? { ...t, status: 'Completed' } : t
-        );
-        setActiveTrips(updatedTrips);
-        localStorage.setItem('active_trips_list', JSON.stringify(updatedTrips));
     };
 
     const handleInputChange = (e) => {
@@ -177,8 +95,8 @@ const TripDispatcher = () => {
     const isOverCapacity = selectedVehicle && currentWeight > selectedVehicle.capacity;
     const capacityDeficit = isOverCapacity ? currentWeight - selectedVehicle.capacity : 0;
 
-    const inTransitCount = activeTrips.filter(t => t.status === 'In Transit').length;
-    const completedCount = activeTrips.filter(t => t.status === 'Completed').length;
+    const inTransitCount = activeTrips.filter(t => t.status === 'DISPATCHED' || t.status === 'IN_TRANSIT').length;
+    const completedCount = activeTrips.filter(t => t.status === 'COMPLETED').length;
 
     if (isLoading) {
         return (
@@ -248,15 +166,11 @@ const TripDispatcher = () => {
                                     <label className="form-label text-secondary small mb-1">Assign Vehicle</label>
                                     <select name="vehicleId" className="form-select bg-dark text-light border-secondary" value={formData.vehicleId} onChange={handleInputChange}>
                                         <option value="">Select an available vehicle...</option>
-                                        {vehicles.map(v => {
-                                            const liveStatus = localStorage.getItem(`live_veh_status_${v.reg}`) || 'Available';
-                                            const isAvail = liveStatus === 'Available';
-                                            return (
-                                                <option key={v.id} value={v.id} disabled={!isAvail}>
-                                                    {v.make} ({v.capacity}kg) - {v.reg} {isAvail ? '✅' : `🚫 [${liveStatus.toUpperCase()}]`}
+                                        {vehicles.map(v => (
+                                                <option key={v.id} value={v.id}>
+                                                    {v.make} ({v.capacity}kg) - {v.reg} ✅
                                                 </option>
-                                            );
-                                        })}
+                                        ))}
                                     </select>
                                 </div>
 
@@ -264,15 +178,11 @@ const TripDispatcher = () => {
                                     <label className="form-label text-secondary small mb-1">Assign Driver</label>
                                     <select name="driverId" className="form-select bg-dark text-light border-secondary" value={formData.driverId} onChange={handleInputChange}>
                                         <option value="">Select an active driver...</option>
-                                        {drivers.map(d => {
-                                            const liveStatus = localStorage.getItem(`live_dri_status_${d.id}`) || 'Active';
-                                            const isAvail = liveStatus === 'Active' || liveStatus === 'Available';
-                                            return (
-                                                <option key={d.id} value={d.id} disabled={!isAvail}>
-                                                    {d.name} {isAvail ? '✅' : `🚫 [${liveStatus.toUpperCase()}]`}
+                                        {drivers.map(d => (
+                                                <option key={d.id} value={d.id}>
+                                                    {d.name} ✅
                                                 </option>
-                                            );
-                                        })}
+                                        ))}
                                     </select>
                                 </div>
 
@@ -337,21 +247,21 @@ const TripDispatcher = () => {
                                         <tbody>
                                             {activeTrips.map((trip, idx) => (
                                                 <tr key={idx}>
-                                                    <td className="fw-bold text-info">{trip.id}</td>
+                                                    <td className="fw-bold text-info">TR-{trip.id}</td>
                                                     <td>
                                                         <small className="text-light">{trip.origin}</small>
                                                         <span className="text-primary mx-1">→</span>
                                                         <small className="text-light">{trip.destination}</small>
                                                     </td>
-                                                    <td><span className="badge bg-secondary">{trip.vehicle}</span></td>
-                                                    <td className="text-light small">{trip.driver}</td>
+                                                    <td><span className="badge bg-secondary">{trip.vehicle?.model || `Vehicle #${trip.vehicleId}`}</span></td>
+                                                    <td className="text-light small">{trip.driver?.name || `Driver #${trip.driverId}`}</td>
                                                     <td>
-                                                        <span className={`badge ${trip.status === 'In Transit' ? 'bg-info text-dark' : 'bg-success'} px-2 py-1 rounded-pill fw-bold`} style={{ fontSize: '11px' }}>
-                                                            {trip.status === 'In Transit' ? '🚚 In Transit' : '✅ Done'}
+                                                        <span className={`badge ${trip.status === 'DISPATCHED' ? 'bg-info text-dark' : 'bg-success'} px-2 py-1 rounded-pill fw-bold`} style={{ fontSize: '11px' }}>
+                                                            {trip.status === 'DISPATCHED' ? '🚚 In Transit' : (trip.status === 'COMPLETED' ? '✅ Done' : trip.status)}
                                                         </span>
                                                     </td>
                                                     <td className="text-end">
-                                                        {trip.status === 'In Transit' ? (
+                                                        {trip.status === 'DISPATCHED' ? (
                                                             <button
                                                                 type="button"
                                                                 className="btn btn-sm btn-outline-success fw-bold"

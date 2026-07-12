@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styles from './AuthPage.module.css';
+import { authApi } from './services/api';
 
 const AuthPage = () => {
   // 1. Form States
@@ -21,30 +22,17 @@ const AuthPage = () => {
     setError({ visible: false, message: '' });
     setIsLoading(true);
 
-    // Payload your backend teammate needs
-    const loginPayload = { email, password, role, rememberMe };
+    const loginPayload = { email, password }; // backend login DTO typically only takes email and password
 
     try {
       console.log('Sending data to backend:', loginPayload);
       
-      /* UNCOMMENT AND EDIT THIS BLOCK WHEN BACKEND IS READY:
-      
-      const response = await fetch('https://api.transitops.com/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginPayload),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Authentication failed');
-      }
+      const data = await authApi.login(loginPayload);
       
       // Store token and redirect based on role
-      localStorage.setItem('token', data.token);
-      // Example: window.location.href = data.redirectUrl;
-      */
+      localStorage.setItem('transitops_token', data.token);
+      localStorage.setItem('transitops_user', JSON.stringify(data.user));
+      window.location.href = '/';
       
     } catch (err) {
       setError({ visible: true, message: err.message });

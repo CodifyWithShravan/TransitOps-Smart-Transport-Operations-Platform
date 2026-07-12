@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import '../styles/VehicleRegistry.css';
 import { Link } from 'react-router-dom';
 import ComingSoonModal from '../components/ComingSoonModal';
+import { vehicleApi } from '../services/api';
 
 const VehicleRegistry = () => {
     const [vehicles, setVehicles] = useState([]);
@@ -24,104 +25,55 @@ const VehicleRegistry = () => {
         e.preventDefault();
         if (!newVehicle.regNo || !newVehicle.makeModel) return;
         try {
-            const res = await fetch('http://localhost:8080/api/vehicles', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    registrationNumber: newVehicle.regNo,
-                    model: newVehicle.makeModel,
-                    type: newVehicle.type,
-                    maxLoadCapacity: parseFloat(newVehicle.capacity) || 5000,
-                    odometer: parseFloat(newVehicle.odometer) || 0,
-                    acquisitionCost: parseFloat(newVehicle.cost) || 1500000,
-                    status: 'AVAILABLE'
-                })
+            const saved = await vehicleApi.create({
+                registrationNumber: newVehicle.regNo,
+                model: newVehicle.makeModel,
+                type: newVehicle.type,
+                maxLoadCapacity: parseFloat(newVehicle.capacity) || 5000,
+                odometer: parseFloat(newVehicle.odometer) || 0,
+                acquisitionCost: parseFloat(newVehicle.cost) || 1500000,
+                status: 'AVAILABLE'
             });
-            if (res.ok) {
-                const saved = await res.json();
-                const newEntry = {
-                    regNo: saved.registrationNumber,
-                    makeModel: saved.model,
-                    type: saved.type,
-                    capacity: `${saved.maxLoadCapacity} kg`,
-                    odometer: `${saved.odometer} km`,
-                    cost: `₹${saved.acquisitionCost}`,
-                    status: 'Available',
-                    badge: 'bg-success'
-                };
-                setVehicles(prev => {
-                    const next = [newEntry, ...prev];
-                    syncSharedRegistry(next);
-                    return next;
-                });
-                setShowAddForm(false);
-                setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
-                return;
-            }
-        } catch (ignored) { }
-        const newEntry = {
-            regNo: newVehicle.regNo,
-            makeModel: newVehicle.makeModel,
-            type: newVehicle.type,
-            capacity: newVehicle.capacity,
-            odometer: `${newVehicle.odometer} km`,
-            cost: `₹${newVehicle.cost}`,
-            status: 'Available',
-            badge: 'bg-success'
-        };
-        setVehicles(prev => {
-            const next = [newEntry, ...prev];
-            syncSharedRegistry(next);
-            return next;
-        });
-        setShowAddForm(false);
-        setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
-    };
 
-    // Sync shared vehicle registry for Maintenance & Trips pages
-    const syncSharedRegistry = (vehicleArray) => {
-        const registry = vehicleArray.map(v => ({
-            id: v.regNo || v.id,
-            make: v.makeModel || v.make,
-            reg: v.regNo || v.reg
-        }));
-        localStorage.setItem('shared_vehicle_registry', JSON.stringify(registry));
+            const newEntry = {
+                regNo: saved.registrationNumber,
+                makeModel: saved.model,
+                type: saved.type,
+                capacity: `${saved.maxLoadCapacity} kg`,
+                odometer: `${saved.odometer} km`,
+                cost: `₹${saved.acquisitionCost}`,
+                status: 'Available',
+                badge: 'bg-success'
+            };
+            
+            setVehicles(prev => [newEntry, ...prev]);
+            setShowAddForm(false);
+            setNewVehicle({ regNo: '', makeModel: '', type: 'Truck', capacity: '5000 kg', odometer: '0', cost: '1500000' });
+        } catch (error) {
+            alert(`Failed to add vehicle: ${error.message}`);
+        }
     };
 
     useEffect(() => {
         const fetchVehicles = async () => {
             try {
-                const response = await fetch('http://localhost:8080/api/vehicles');
-                if (response.ok) {
-                    const data = await response.json();
-                    const mapped = data.map(v => ({
-                        regNo: v.registrationNumber || 'N/A',
-                        makeModel: v.model || 'Unknown',
-                        type: v.type || 'Truck',
-                        capacity: `${v.maxLoadCapacity || 0} kg`,
-                        odometer: `${v.odometer || 0} km`,
-                        cost: `₹${v.acquisitionCost || 0}`,
-                        status: v.status === 'ON_TRIP' ? 'On Trip' : (v.status === 'IN_SHOP' ? 'In Shop' : (v.status === 'RETIRED' ? 'Retired' : 'Available')),
-                        badge: v.status === 'ON_TRIP' ? 'bg-primary' : (v.status === 'IN_SHOP' ? 'bg-warning text-dark' : (v.status === 'RETIRED' ? 'bg-danger' : 'bg-success'))
-                    }));
-                    setVehicles(mapped);
-                    syncSharedRegistry(mapped);
-                    setIsLoading(false);
-                    return;
-                }
-            } catch (ignored) { }
-
-            setTimeout(() => {
-                const defaults = [
-                    { regNo: 'GJ01AB452', makeModel: 'VAN-05', type: 'Van', capacity: '500 kg', odometer: '74,000', cost: '6,20,000', status: 'Available', badge: 'bg-success' },
-                    { regNo: 'GJ01AB998', makeModel: 'TRUCK-11', type: 'Truck', capacity: '5 Ton', odometer: '182,000', cost: '24,50,000', status: 'On Trip', badge: 'bg-primary' },
-                    { regNo: 'GJ01AB1120', makeModel: 'MINI-03', type: 'Mini', capacity: '1 Ton', odometer: '66,000', cost: '4,10,000', status: 'In Shop', badge: 'bg-warning text-dark' },
-                    { regNo: 'GJ01AB009', makeModel: 'VAN-09', type: 'Van', capacity: '750 kg', odometer: '241,900', cost: '5,90,000', status: 'Retired', badge: 'bg-danger' },
-                ];
-                setVehicles(defaults);
-                syncSharedRegistry(defaults);
+                const data = await vehicleApi.getAll();
+                const mapped = data.map(v => ({
+                    regNo: v.registrationNumber || 'N/A',
+                    makeModel: v.model || 'Unknown',
+                    type: v.type || 'Truck',
+                    capacity: `${v.maxLoadCapacity || 0} kg`,
+                    odometer: `${v.odometer || 0} km`,
+                    cost: `₹${v.acquisitionCost || 0}`,
+                    status: v.status === 'ON_TRIP' ? 'On Trip' : (v.status === 'IN_SHOP' ? 'In Shop' : (v.status === 'RETIRED' ? 'Retired' : 'Available')),
+                    badge: v.status === 'ON_TRIP' ? 'bg-primary' : (v.status === 'IN_SHOP' ? 'bg-warning text-dark' : (v.status === 'RETIRED' ? 'bg-danger' : 'bg-success'))
+                }));
+                setVehicles(mapped);
+            } catch (error) {
+                console.error("Failed to fetch vehicles:", error);
+            } finally {
                 setIsLoading(false);
-            }, 500);
+            }
         };
 
         fetchVehicles();
@@ -130,7 +82,7 @@ const VehicleRegistry = () => {
 
 
     const filteredVehicles = vehicles.filter(vehicle => {
-        const liveStatus = localStorage.getItem(`live_veh_status_${vehicle.regNo}`) || vehicle.status;
+        const liveStatus = vehicle.status;
         const matchesSearch = vehicle.regNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
             vehicle.makeModel.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = typeFilter === 'All' || vehicle.type === typeFilter;
@@ -295,7 +247,7 @@ const VehicleRegistry = () => {
                             <tbody>
                                 {filteredVehicles.length > 0 ? (
                                     filteredVehicles.map((vehicle, idx) => {
-                                        const liveStatus = localStorage.getItem(`live_veh_status_${vehicle.regNo}`) || vehicle.status;
+                                        const liveStatus = vehicle.status;
                                         const badgeColor = liveStatus === 'On Trip' ? 'bg-primary' : (liveStatus === 'In Shop' ? 'bg-warning text-dark' : (liveStatus === 'Available' ? 'bg-success' : 'bg-secondary'));
                                         return (
                                             <tr key={idx}>
