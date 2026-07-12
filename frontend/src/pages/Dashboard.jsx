@@ -25,26 +25,29 @@ const Dashboard = () => {
                 const activeTripsList = trips.filter(t => t.status === 'DISPATCHED' || t.status === 'IN_TRANSIT');
                 const recentTripsList = trips.sort((a,b) => b.id - a.id).slice(0, 5).map(t => ({
                     trip: `TR-${t.id}`,
-                    vehicle: t.vehicle?.registrationNumber || `Vehicle #${t.vehicleId}`,
-                    driver: t.driver?.name || `Driver #${t.driverId}`,
-                    status: t.status === 'DISPATCHED' ? 'In Transit' : (t.status === 'COMPLETED' ? 'Completed' : t.status),
-                    badge: t.status === 'DISPATCHED' ? 'bg-primary' : (t.status === 'COMPLETED' ? 'bg-success' : 'bg-info'),
-                    eta: t.status === 'DISPATCHED' ? '45 min' : '—'
+                    route: `${t.source || t.origin || 'Origin'} → ${t.destination || 'Destination'}`,
+                    vehicle: t.vehicleRegistrationNumber || t.vehicle?.registrationNumber || (t.vehicleModel ? `${t.vehicleModel} (#${t.vehicleId})` : `Vehicle #${t.vehicleId}`),
+                    driver: t.driverName || t.driver?.name || `Driver #${t.driverId}`,
+                    status: t.status === 'DISPATCHED' ? 'In Transit' : (t.status === 'COMPLETED' ? 'Completed' : (t.status === 'DRAFT' ? 'Draft' : t.status)),
+                    badge: t.status === 'DISPATCHED' ? 'bg-primary' : (t.status === 'COMPLETED' ? 'bg-success' : (t.status === 'DRAFT' ? 'bg-warning text-dark' : 'bg-info')),
+                    eta: t.status === 'DISPATCHED' ? 'In Progress' : (t.status === 'COMPLETED' ? 'Arrived' : 'Pending')
                 }));
                 
+                const totalVehiclesCount = stats.totalVehicles ?? 0;
                 setData({
                     stats: [
+                        { title: 'FLEET UTILIZATION', value: `${Math.round(stats.fleetUtilization || 0)}%`, color: 'success' },
                         { title: 'ACTIVE VEHICLES', value: String(stats.activeVehicles ?? 0), color: 'primary' },
                         { title: 'AVAILABLE VEHICLES', value: String(stats.availableVehicles ?? 0), color: 'success' },
-                        { title: 'VEHICLES IN MAINT.', value: String(stats.vehiclesInMaintenance ?? 0), color: 'warning' },
+                        { title: 'VEHICLES IN SHOP', value: String(stats.vehiclesInMaintenance ?? 0), color: 'warning' },
                         { title: 'ACTIVE TRIPS', value: String(stats.activeTrips ?? activeTripsList.length), color: 'info' },
-                        { title: 'FLEET UTILIZATION', value: `${Math.round(stats.fleetUtilizationRate || 0)}%`, color: 'success' }
+                        { title: 'DRIVERS ON DUTY', value: String(stats.driversOnDuty ?? 0), color: 'primary' }
                     ],
                     recentTrips: recentTripsList,
                     vehicleStatuses: [
-                        { label: 'Available', percent: Math.round(((stats.availableVehicles || 0) / (stats.totalVehicles || 1)) * 100) || 0, color: 'bg-success' },
-                        { label: 'On Trip', percent: Math.round(((stats.activeVehicles || 0) / (stats.totalVehicles || 1)) * 100) || 0, color: 'bg-primary' },
-                        { label: 'In Shop', percent: Math.round(((stats.vehiclesInMaintenance || 0) / (stats.totalVehicles || 1)) * 100) || 0, color: 'bg-warning' },
+                        { label: 'Available', percent: Math.round(((stats.availableVehicles || 0) / (totalVehiclesCount || 1)) * 100) || 0, color: 'bg-success' },
+                        { label: 'On Trip', percent: Math.round(((stats.activeVehicles || 0) / (totalVehiclesCount || 1)) * 100) || 0, color: 'bg-primary' },
+                        { label: 'In Shop', percent: Math.round(((stats.vehiclesInMaintenance || 0) / (totalVehiclesCount || 1)) * 100) || 0, color: 'bg-warning' },
                     ]
                 });
             } catch (err) {
@@ -124,13 +127,13 @@ const Dashboard = () => {
 
                     <TopHeader />
 
-                    <div className="row mb-4 flex-nowrap overflow-auto hide-scrollbar">
+                    <div className="row g-3 mb-4">
                         {data.stats.map((stat, idx) => (
-                            <div className="col-auto px-2" key={idx} style={{ minWidth: '180px' }}>
+                            <div className="col-12 col-sm-6 col-md-4 col-xl-2" key={idx}>
                                 <div className={`card border-0 border-start border-4 border-${stat.color} h-100 shadow`} style={{ backgroundColor: '#1e242b' }}>
                                     <div className="card-body py-3 px-3">
                                         <p className="text-info mb-1 text-uppercase fw-bold" style={{ fontSize: '11px', letterSpacing: '1px' }}>{stat.title}</p>
-                                        <h2 className="mb-0 text-white fw-bolder">{stat.value}</h2>
+                                        <h3 className="mb-0 text-white fw-bolder">{stat.value}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -144,8 +147,9 @@ const Dashboard = () => {
                             <div className="table-responsive">
                                 <table className="table table-dark table-hover table-borderless">
                                     <thead className="border-bottom border-secondary text-muted">
-                                        <tr style={{ fontSize: '12px' }}>
+                                        <tr style={{ fontSize: '11px', letterSpacing: '1px' }}>
                                             <th>TRIP</th>
+                                            <th>ROUTE</th>
                                             <th>VEHICLE</th>
                                             <th>DRIVER</th>
                                             <th>STATUS</th>
@@ -155,18 +159,19 @@ const Dashboard = () => {
                                     <tbody>
                                         {data.recentTrips.map((trip, idx) => (
                                             <tr key={idx} className="align-middle">
-                                                <td className="fw-bold text-white">{trip.trip}</td>
+                                                <td className="fw-bold text-info">{trip.trip}</td>
+                                                <td className="small text-light">{trip.route}</td>
                                                 <td className="text-light">{trip.vehicle}</td>
                                                 <td className="text-light">{trip.driver}</td>
                                                 <td>
-                                                    <span className={`badge ${trip.badge} px-3 py-2 rounded-pill fw-bold`}>{trip.status}</span>
+                                                    <span className={`badge ${trip.badge} px-3 py-1 rounded-pill fw-bold`} style={{ fontSize: '11px' }}>{trip.status}</span>
                                                 </td>
-                                                <td className="text-info fw-bold">{trip.eta}</td>
+                                                <td className="text-info fw-bold small">{trip.eta}</td>
                                             </tr>
                                         ))}
                                         {data.recentTrips.length === 0 && (
                                             <tr>
-                                                <td colSpan="5" className="text-center py-4 text-muted">
+                                                <td colSpan="6" className="text-center py-4 text-muted">
                                                     No recent trips logged yet.
                                                 </td>
                                             </tr>
