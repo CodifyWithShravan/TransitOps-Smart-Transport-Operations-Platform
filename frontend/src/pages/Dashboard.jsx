@@ -177,13 +177,13 @@ const Dashboard = () => {
                                     <tbody>
                                         {data.recentTrips.map((trip, idx) => (
                                             <tr key={idx} className="align-middle">
-                                                <td>{trip.trip}</td>
-                                                <td>{trip.vehicle}</td>
-                                                <td>{trip.driver}</td>
+                                                <td className="fw-bold text-white">{trip.trip}</td>
+                                                <td className="text-light">{trip.vehicle}</td>
+                                                <td className="text-light">{trip.driver}</td>
                                                 <td>
-                                                    <span className={`badge ${trip.badge} px-3 py-2 rounded-pill`}>{trip.status}</span>
+                                                    <span className={`badge ${trip.badge} px-3 py-2 rounded-pill fw-bold`}>{trip.status}</span>
                                                 </td>
-                                                <td className="text-muted">{trip.eta}</td>
+                                                <td className="text-info fw-bold">{trip.eta}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -192,12 +192,12 @@ const Dashboard = () => {
                         </div>
 
                         <div className="col-md-4 pl-md-4">
-                            <h6 className="text-uppercase text-muted mb-3" style={{ letterSpacing: '1px' }}>Vehicle Status</h6>
+                            <h6 className="text-uppercase text-info mb-3 fw-bold" style={{ letterSpacing: '1px' }}>Vehicle Status</h6>
                             {data.vehicleStatuses.map((status, idx) => (
                                 <div className="d-flex align-items-center mb-3" key={idx}>
-                                    <div className="w-25 text-sm text-secondary">{status.label}</div>
-                                    <div className="w-75">
-                                        <div className="progress" style={{ height: '8px', backgroundColor: '#333' }}>
+                                    <div className="w-50 text-white fw-bold small">{status.label} ({status.percent}%)</div>
+                                    <div className="w-50">
+                                        <div className="progress border border-secondary" style={{ height: '10px', backgroundColor: '#111' }}>
                                             <div className={`progress-bar ${status.color}`} role="progressbar" style={{ width: `${status.percent}%` }}></div>
                                         </div>
                                     </div>

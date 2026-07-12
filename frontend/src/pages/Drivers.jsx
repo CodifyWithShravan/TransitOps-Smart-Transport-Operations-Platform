@@ -98,10 +98,16 @@ const Drivers = () => {
         fetchDrivers();
     }, []);
 
+    const handleStatusChange = (id, newStatus) => {
+        localStorage.setItem(`live_dri_status_${id}`, newStatus);
+        setDrivers(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
+    };
+
     const filteredDrivers = drivers.filter(driver => {
+        const liveStatus = localStorage.getItem(`live_dri_status_${driver.id}`) || driver.status;
         const matchesSearch = driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             driver.license.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'All' || driver.status === statusFilter;
+        const matchesStatus = statusFilter === 'All' || liveStatus === statusFilter;
 
         return matchesSearch && matchesStatus;
     });
@@ -233,29 +239,45 @@ const Drivers = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredDrivers.map((driver, idx) => (
-                                    <tr key={idx}>
-                                        <td className="text-secondary">{driver.id}</td>
-                                        <td className="fw-semibold">{driver.name}</td>
-                                        <td>{driver.license}</td>
-                                        <td className={new Date(driver.expiry) < new Date() ? 'text-danger' : ''}>
-                                            {driver.expiry}
-                                        </td>
-                                        <td>
-                                            <span className={`badge rounded-pill ${driver.incidents > 0 ? 'bg-danger' : 'bg-secondary'}`}>
-                                                {driver.incidents}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${driver.badge} px-3 py-2 w-75 rounded`} style={{ minWidth: '90px' }}>
-                                                {driver.status}
-                                            </span>
-                                        </td>
-                                        <td className="text-end">
-                                            <button className="btn btn-sm btn-outline-secondary me-2">Profile</button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {filteredDrivers.map((driver, idx) => {
+                                    const liveStatus = localStorage.getItem(`live_dri_status_${driver.id}`) || driver.status;
+                                    const badgeColor = liveStatus === 'Active' ? 'bg-success' : (liveStatus === 'On Route' ? 'bg-primary' : 'bg-warning text-dark');
+                                    return (
+                                        <tr key={idx}>
+                                            <td className="text-secondary">{driver.id}</td>
+                                            <td className="fw-semibold">{driver.name}</td>
+                                            <td>{driver.license}</td>
+                                            <td className={new Date(driver.expiry) < new Date() ? 'text-danger' : ''}>
+                                                {driver.expiry}
+                                            </td>
+                                            <td>
+                                                <span className={`badge rounded-pill ${driver.incidents > 0 ? 'bg-danger' : 'bg-secondary'}`}>
+                                                    {driver.incidents}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <span className={`badge ${badgeColor} px-2 py-1 rounded`} style={{ minWidth: '80px' }}>
+                                                        {liveStatus}
+                                                    </span>
+                                                    <select
+                                                        className="form-select form-select-sm bg-dark text-light border-secondary"
+                                                        style={{ width: '110px', fontSize: '11px' }}
+                                                        value={liveStatus}
+                                                        onChange={(e) => handleStatusChange(driver.id, e.target.value)}
+                                                    >
+                                                        <option value="Active">Active</option>
+                                                        <option value="On Route">On Route</option>
+                                                        <option value="On Leave">On Leave</option>
+                                                    </select>
+                                                </div>
+                                            </td>
+                                            <td className="text-end">
+                                                <button className="btn btn-sm btn-outline-secondary">Profile</button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

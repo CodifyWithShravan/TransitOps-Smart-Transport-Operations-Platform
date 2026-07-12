@@ -7,6 +7,7 @@ import ComingSoonModal from '../components/ComingSoonModal';
 const TripDispatcher = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [comingSoonModule, setComingSoonModule] = useState(null);
+    const [tripStep, setTripStep] = useState(1);
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
 
@@ -76,6 +77,10 @@ const TripDispatcher = () => {
         if (selVeh) {
             localStorage.setItem(`live_veh_status_${selVeh.reg || selVeh.id}`, 'On Trip');
         }
+        if (selDri) {
+            localStorage.setItem(`live_dri_status_${selDri.id}`, 'On Route');
+        }
+        setTripStep(3);
 
         try {
             const res = await fetch('http://localhost:8080/api/trips', {
@@ -181,17 +186,33 @@ const TripDispatcher = () => {
                             <form>
                                 <div className="mb-3">
                                     <label className="form-label text-secondary small mb-1">Assign Vehicle</label>
-                                    <select name="vehicleId" className="form-select bg-transparent text-light border-secondary" value={formData.vehicleId} onChange={handleInputChange}>
-                                        <option value="">Select a vehicle...</option>
-                                        {vehicles.map(v => <option key={v.id} value={v.id}>{v.make} ({v.capacity}kg) - {v.reg}</option>)}
+                                    <select name="vehicleId" className="form-select bg-dark text-light border-secondary" value={formData.vehicleId} onChange={handleInputChange}>
+                                        <option value="">Select an available vehicle...</option>
+                                        {vehicles.map(v => {
+                                            const liveStatus = localStorage.getItem(`live_veh_status_${v.reg}`) || 'Available';
+                                            const isAvail = liveStatus === 'Available';
+                                            return (
+                                                <option key={v.id} value={v.id} disabled={!isAvail}>
+                                                    {v.make} ({v.capacity}kg) - {v.reg} {isAvail ? '✅ [Available]' : `🚫 [${liveStatus.toUpperCase()}]`}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                 </div>
 
                                 <div className="mb-3">
                                     <label className="form-label text-secondary small mb-1">Assign Driver</label>
-                                    <select name="driverId" className="form-select bg-transparent text-light border-secondary" value={formData.driverId} onChange={handleInputChange}>
-                                        <option value="">Select a driver...</option>
-                                        {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                    <select name="driverId" className="form-select bg-dark text-light border-secondary" value={formData.driverId} onChange={handleInputChange}>
+                                        <option value="">Select an active driver...</option>
+                                        {drivers.map(d => {
+                                            const liveStatus = localStorage.getItem(`live_dri_status_${d.id}`) || 'Active';
+                                            const isAvail = liveStatus === 'Active' || liveStatus === 'Available';
+                                            return (
+                                                <option key={d.id} value={d.id} disabled={!isAvail}>
+                                                    {d.name} {isAvail ? '✅ [Available]' : `🚫 [${liveStatus.toUpperCase()}]`}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                 </div>
 
@@ -241,24 +262,24 @@ const TripDispatcher = () => {
                                 <span className="badge bg-secondary px-3 py-2 rounded-pill">TR005 (Auto-generated)</span>
                             </div>
 
-                            <div className="stepper-wrapper mb-5 d-flex justify-content-between position-relative">
+                            <div className="stepper-wrapper mb-4 d-flex justify-content-between position-relative">
                                 <div className="stepper-line position-absolute top-50 start-0 w-100 translate-middle-y"></div>
 
-                                <div className="stepper-item active text-center position-relative">
-                                    <div className="step-circle bg-primary text-white mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle">1</div>
-                                    <small className="text-primary fw-bold">Draft</small>
+                                <div className={`stepper-item ${tripStep >= 1 ? 'active' : ''} text-center position-relative`}>
+                                    <div className={`step-circle ${tripStep >= 1 ? 'bg-primary text-white' : 'bg-dark border border-secondary text-secondary'} mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle`}>1</div>
+                                    <small className={tripStep >= 1 ? 'text-primary fw-bold' : 'text-secondary'}>Draft</small>
                                 </div>
-                                <div className="stepper-item text-center position-relative">
-                                    <div className="step-circle bg-dark border border-secondary text-secondary mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle">2</div>
-                                    <small className="text-secondary">Dispatched</small>
+                                <div className={`stepper-item ${tripStep >= 2 ? 'active' : ''} text-center position-relative`}>
+                                    <div className={`step-circle ${tripStep >= 2 ? 'bg-primary text-white' : 'bg-dark border border-secondary text-secondary'} mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle`}>2</div>
+                                    <small className={tripStep >= 2 ? 'text-primary fw-bold' : 'text-secondary'}>Dispatched</small>
                                 </div>
-                                <div className="stepper-item text-center position-relative">
-                                    <div className="step-circle bg-dark border border-secondary text-secondary mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle">3</div>
-                                    <small className="text-secondary">In Transit</small>
+                                <div className={`stepper-item ${tripStep >= 3 ? 'active' : ''} text-center position-relative`}>
+                                    <div className={`step-circle ${tripStep >= 3 ? 'bg-info text-dark fw-bold' : 'bg-dark border border-secondary text-secondary'} mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle`}>3</div>
+                                    <small className={tripStep >= 3 ? 'text-info fw-bold' : 'text-secondary'}>In Transit</small>
                                 </div>
-                                <div className="stepper-item text-center position-relative">
-                                    <div className="step-circle bg-dark border border-secondary text-secondary mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle">4</div>
-                                    <small className="text-secondary">Completed</small>
+                                <div className={`stepper-item ${tripStep >= 4 ? 'active' : ''} text-center position-relative`}>
+                                    <div className={`step-circle ${tripStep >= 4 ? 'bg-success text-white fw-bold' : 'bg-dark border border-secondary text-secondary'} mx-auto mb-2 d-flex justify-content-center align-items-center rounded-circle`}>4</div>
+                                    <small className={tripStep >= 4 ? 'text-success fw-bold' : 'text-secondary'}>Completed</small>
                                 </div>
                             </div>
 
@@ -279,6 +300,7 @@ const TripDispatcher = () => {
                                             {drivers.find(d => d.id === formData.driverId)?.name || 'Pending Driver Selection'}
                                         </div>
                                     </div>
+
                                     <div className="row mb-3 border-bottom border-secondary pb-3">
                                         <div className="col-4 text-muted small">Asset:</div>
                                         <div className="col-8 text-light d-flex align-items-center gap-2">
@@ -287,12 +309,49 @@ const TripDispatcher = () => {
                                             ) : 'Pending Vehicle Selection'}
                                         </div>
                                     </div>
-                                    <div className="row">
+                                    <div className="row mb-3">
                                         <div className="col-4 text-muted small">Payload:</div>
                                         <div className={`col-8 fw-bold ${isOverCapacity ? 'text-danger' : 'text-success'}`}>
                                             {formData.cargoWeight ? `${formData.cargoWeight} kg` : '0 kg'}
                                             {selectedVehicle && ` / ${selectedVehicle.capacity} kg limit`}
                                         </div>
+                                    </div>
+
+                                    <div className="mt-3">
+                                        {tripStep === 3 ? (
+                                            <div className="p-3 bg-dark border border-info rounded-3 text-center">
+                                                <div className="text-info fw-bold mb-2">🚚 Trip Currently In Transit</div>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-success btn-sm fw-bold w-100 py-2"
+                                                    onClick={() => {
+                                                        const selVeh = vehicles.find(v => v.id === formData.vehicleId);
+                                                        const selDri = drivers.find(d => d.id === formData.driverId);
+                                                        if (selVeh) {
+                                                            localStorage.setItem(`live_veh_status_${selVeh.reg || selVeh.id}`, 'Available');
+                                                        }
+                                                        if (selDri) {
+                                                            localStorage.setItem(`live_dri_status_${selDri.id}`, 'Active');
+                                                        }
+                                                        setTripStep(4);
+                                                    }}
+                                                >
+                                                    ✅ Complete Trip & Release Vehicle
+                                                </button>
+                                            </div>
+                                        ) : tripStep === 4 ? (
+                                            <div className="p-3 bg-success bg-opacity-25 border border-success rounded-3 text-center">
+                                                <div className="text-success fw-bold">🎉 Trip Completed Successfully</div>
+                                                <small className="text-light">Vehicle & Driver released to Available.</small>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-outline-light btn-sm mt-2 w-100"
+                                                    onClick={() => setTripStep(1)}
+                                                >
+                                                    Dispatch Another Trip
+                                                </button>
+                                            </div>
+                                        ) : null}
                                     </div>
                                 </div>
                             </div>

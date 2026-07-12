@@ -104,11 +104,17 @@ const VehicleRegistry = () => {
         fetchVehicles();
     }, []);
 
+    const handleStatusChange = (regNo, newStatus) => {
+        localStorage.setItem(`live_veh_status_${regNo}`, newStatus);
+        setVehicles(prev => prev.map(v => v.regNo === regNo ? { ...v, status: newStatus } : v));
+    };
+
     const filteredVehicles = vehicles.filter(vehicle => {
+        const liveStatus = localStorage.getItem(`live_veh_status_${vehicle.regNo}`) || vehicle.status;
         const matchesSearch = vehicle.regNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
             vehicle.makeModel.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = typeFilter === 'All' || vehicle.type === typeFilter;
-        const matchesStatus = statusFilter === 'All' || vehicle.status === statusFilter;
+        const matchesStatus = statusFilter === 'All' || liveStatus === statusFilter;
 
         return matchesSearch && matchesType && matchesStatus;
     });
@@ -266,9 +272,8 @@ const VehicleRegistry = () => {
                             <tbody>
                                 {filteredVehicles.length > 0 ? (
                                     filteredVehicles.map((vehicle, idx) => {
-                                        const liveStatus = localStorage.getItem(`live_veh_status_${vehicle.regNo}`);
-                                        const displayStatus = liveStatus || vehicle.status;
-                                        const badgeColor = displayStatus === 'On Trip' ? 'bg-primary' : (displayStatus === 'In Shop' ? 'bg-warning text-dark' : vehicle.badge);
+                                        const liveStatus = localStorage.getItem(`live_veh_status_${vehicle.regNo}`) || vehicle.status;
+                                        const badgeColor = liveStatus === 'On Trip' ? 'bg-primary' : (liveStatus === 'In Shop' ? 'bg-warning text-dark' : (liveStatus === 'Available' ? 'bg-success' : 'bg-secondary'));
                                         return (
                                             <tr key={idx}>
                                                 <td className="fw-semibold">{vehicle.regNo}</td>
@@ -278,9 +283,21 @@ const VehicleRegistry = () => {
                                                 <td>{vehicle.odometer}</td>
                                                 <td>{vehicle.cost}</td>
                                                 <td>
-                                                    <span className={`badge ${badgeColor} px-3 py-2 w-75 rounded`} style={{ minWidth: '90px' }}>
-                                                        {displayStatus}
-                                                    </span>
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <span className={`badge ${badgeColor} px-2 py-1 rounded`} style={{ minWidth: '80px' }}>
+                                                            {liveStatus}
+                                                        </span>
+                                                        <select
+                                                            className="form-select form-select-sm bg-dark text-light border-secondary"
+                                                            style={{ width: '120px', fontSize: '11px' }}
+                                                            value={liveStatus}
+                                                            onChange={(e) => handleStatusChange(vehicle.regNo, e.target.value)}
+                                                        >
+                                                            <option value="Available">Available</option>
+                                                            <option value="In Shop">In Shop</option>
+                                                            <option value="On Trip">On Trip</option>
+                                                        </select>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

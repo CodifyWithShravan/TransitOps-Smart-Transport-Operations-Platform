@@ -243,7 +243,8 @@ const Maintenance = () => {
                                             <th className="text-uppercase fw-normal pb-3">SERVICE TYPE</th>
                                             <th className="text-uppercase fw-normal pb-3">DATE</th>
                                             <th className="text-uppercase fw-normal pb-3">COST</th>
-                                            <th className="text-uppercase fw-normal pb-3 text-end">STATUS</th>
+                                            <th className="text-uppercase fw-normal pb-3">STATUS</th>
+                                            <th className="text-uppercase fw-normal pb-3 text-end">ACTION</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -255,10 +256,27 @@ const Maintenance = () => {
                                                     <td>{log.type}</td>
                                                     <td className="text-secondary">{log.date}</td>
                                                     <td>₹{log.cost.toLocaleString('en-IN')}</td>
-                                                    <td className="text-end">
-                                                        <span className={`badge ${log.badge} px-3 py-2 rounded`}>
+                                                    <td>
+                                                        <span className={`badge ${log.status === 'Completed' ? 'bg-success' : log.badge} px-3 py-2 rounded`}>
                                                             {log.status}
                                                         </span>
+                                                    </td>
+                                                    <td className="text-end">
+                                                        {log.status === 'In Shop' ? (
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-sm btn-outline-success fw-bold"
+                                                                onClick={() => {
+                                                                    localStorage.setItem(`live_veh_status_${log.vehicleReg}`, 'Available');
+                                                                    setMaintenanceLogs(prev => prev.map(item => item.id === log.id ? { ...item, status: 'Completed', badge: 'bg-success' } : item));
+                                                                    alert(`✅ Maintenance Completed!\n\nVehicle ${log.vehicleReg} is now released from shop and marked Available.`);
+                                                                }}
+                                                            >
+                                                                Release to Available
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-muted small">Completed</span>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))
