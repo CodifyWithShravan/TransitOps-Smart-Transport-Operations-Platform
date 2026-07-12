@@ -1,0 +1,91 @@
+/* Core Theme */
+.maintenance-bg {
+  background-color: #121212;
+}
+
+.sidebar-dark {
+  background-color: #1a1a1a;
+  min-height: 100vh;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #121212;
+}
+
+/* Sidebar Navigation */
+.active-nav-item {
+  border: 1px solid #f39c12;
+  border-radius: 6px;
+  color: #fff !important;
+  background-color: rgba(243, 156, 18, 0.1);
+}
+
+.hover-nav {
+  transition: all 0.2s ease-in-out;
+}
+
+.hover-nav:hover {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+/* Avatar */
+.rounded-avatar {
+  width: 40px;
+  height: 40px;
+  font-weight: 600;
+  border: 1px solid #ffc107; /* Warning yellow/orange ring */
+  color: #ffc107;
+  background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+/* Form Controls */
+.form-control:focus, .form-select:focus {
+  background-color: transparent;
+  color: #fff;
+  border-color: #ffc107; /* Orange focus outline */
+  box-shadow: none;
+}
+
+.form-select option {
+  background-color: #1a1a1a;
+  color: #fff;
+}
+
+/* Custom Maintenance Button */
+.btn-warning {
+  background-color: #f39c12;
+  border-color: #f39c12;
+}
+
+.btn-warning:hover {
+  background-color: #d68910;
+  border-color: #d68910;
+}
+
+/* Table Customizations */
+.table-dark {
+  --bs-table-bg: transparent;
+}
+
+.table-hover > tbody > tr:hover > * {
+  --bs-table-accent-bg: rgba(255, 255, 255, 0.03);
+  color: #fff;
+}
+
+.table td {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.badge {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Style for text area resizing */
+textarea {
+  resize: none;
+}

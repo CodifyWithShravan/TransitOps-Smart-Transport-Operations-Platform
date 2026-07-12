@@ -82,6 +82,7 @@ const Dashboard = () => {
                             if (item === 'Fleet') path = "/fleet";
                             if (item === 'Drivers') path = "/drivers";
                             if (item === 'Trips') path = "/trips";
+                            if (item === 'Maintenance') path = "/maintenance";
 
                             const isActive = item === 'Dashboard';
 
