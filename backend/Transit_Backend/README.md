@@ -120,7 +120,7 @@ Step 9: Reports update operational cost and fuel efficiency.
 - [x] Automatic status transitions
 - [x] Maintenance workflow
 - [x] Fuel & Expense tracking
-- [ ] Dashboard with KPIs
+- [x] Dashboard with KPIs
 
 ---
 
@@ -183,9 +183,10 @@ com.example.Transit_Backend
 - JPQL aggregate queries for cost summation (used in analytics)
 - Auto status transitions: create maintenance → IN_SHOP, close → AVAILABLE
 
-### Step 5 — Dashboard & Analytics
-- KPI aggregation endpoints
-- Fleet utilization, fuel efficiency, vehicle ROI
+### Step 5 — Dashboard & Analytics ✅
+- KPI aggregation endpoints (`/api/dashboard`)
+- Fleet utilization, fuel efficiency, operational costs, and vehicle ROI metrics
+- CSV exports for vehicles, drivers, trips, and vehicle analytics (`/api/dashboard/export/*`)
 
 ### Step 6 — Auth & RBAC
 - User/Role entities, JWT authentication

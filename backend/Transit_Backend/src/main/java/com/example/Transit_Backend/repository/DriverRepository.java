@@ -29,4 +29,9 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
      * Useful for listing available drivers during trip creation.
      */
     List<Driver> findByStatus(DriverStatus status);
+
+    /**
+     * Count drivers by operational status. Used for dashboard KPIs.
+     */
+    long countByStatus(DriverStatus status);
 }
