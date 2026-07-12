@@ -98,7 +98,8 @@ export const maintenanceApi = {
   getAll: (status) =>
     apiClient.get(status && status !== 'All' ? `/maintenance?status=${status}` : '/maintenance'),
   create: (maintenanceData) => apiClient.post('/maintenance', maintenanceData),
-  complete: (id, completionData) => apiClient.post(`/maintenance/${id}/complete`, completionData),
+  complete: (id) => apiClient.patch(`/maintenance/${id}/close`),
+  close: (id) => apiClient.patch(`/maintenance/${id}/close`),
 };
 
 // ==========================================

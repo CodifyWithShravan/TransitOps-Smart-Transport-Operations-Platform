@@ -233,7 +233,7 @@ const Maintenance = () => {
                                                                 className="btn btn-sm btn-outline-success fw-bold"
                                                                 onClick={async () => {
                                                                     try {
-                                                                        await maintenanceApi.complete(log.id, { notes: 'Completed' });
+                                                                        await maintenanceApi.complete(log.id);
                                                                         fetchVehiclesAndLogs();
                                                                         alert(`✅ Maintenance Completed!\n\nVehicle ${log.vehicleReg} is now released from shop and marked Available.`);
                                                                     } catch (error) {
